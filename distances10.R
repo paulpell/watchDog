@@ -1,11 +1,3 @@
-
-
-
-
-               #NO_GUI <- TRUE;
-
-
-
 #
 #
 #  WARNING:
@@ -27,6 +19,7 @@ DATA_SEP = ";"; # symbol between values in input files
 
 RADIUS_EARTH <- 6371L; # km
 
+HISTOGRAM_CLASSES <- 100;
 
 # the script does not take into account the moments where the dog is far from the sheep,
 # for alignment, in_front and these things.
@@ -52,15 +45,9 @@ plotpath <- paste(dirname(test),"plot.R", sep = .Platform$file.sep);
 source(plotpath);
 
 
-
-#if ( exists("NO_GUI") & NO_GUI ) stop("GUI disabled");
-
-
-
 # if this fails, you need to install RGtk2, available at:
 # http://cran.r-project.org/web/packages/RGtk2/index.html
 library("RGtk2");
-
 
 
 
@@ -200,27 +187,6 @@ remove_dogs <- function(button, user.data)
   dogListLabel$setText("Aucun chien choisi");
   fastFolder <<- base_folder;
 }
-GUI_dog_data <<- c("Helix_testplot",
-                   "/media/data/toSave/paul/AGRIDEA/Base_de_donnée_GPS/Pfister_2014_Tirex_Agnella_Helix_Soldanella/Helix/",
-                   "/media/data/toSave/paul/AGRIDEA/Base_de_donnée_GPS/Pfister_2014_Tirex_Agnella_Helix_Soldanella/Helix/JHP_Helix_22_23_5_2014.txt",
-                   "/media/data/toSave/paul/AGRIDEA/Base_de_donnée_GPS/Pfister_2014_Tirex_Agnella_Helix_Soldanella/Helix/JHP_mouton1_Helix_22_23_5_2014.txt",
-                   "/media/data/toSave/paul/AGRIDEA/Base_de_donnée_GPS/Pfister_2014_Tirex_Agnella_Helix_Soldanella/Helix/JHP_mouton2_Helix_22_23_5_2014.txt",
-                   0,0,
-                   
-                   "Tirex_testplot" ,
-                   "/media/data/toSave/paul/AGRIDEA/Base_de_donnée_GPS/Pfister_2014_Tirex_Agnella_Helix_Soldanella/Tirex/", 
-                    "/media/data/toSave/paul/AGRIDEA/Base_de_donnée_GPS/Pfister_2014_Tirex_Agnella_Helix_Soldanella/Tirex/JHP_Tirex_10_11_4_2014.txt", 
-                    "/media/data/toSave/paul/AGRIDEA/Base_de_donnée_GPS/Pfister_2014_Tirex_Agnella_Helix_Soldanella/Tirex/JHP_mouton2_Tirex_10_11_4_2014.txt",
-                    "/media/data/toSave/paul/AGRIDEA/Base_de_donnée_GPS/Pfister_2014_Tirex_Agnella_Helix_Soldanella/Tirex/JHP_mouton1_Tirex_10_11_4_2014.txt",
-                    0, 
-                    0
-                   );
-    dogL <- "Chiens choisis: ";
-    for (d in GUI_dog_data[seq(1,length(GUI_dog_data),7)])
-      dogL <- paste(dogL, d, sep = "  ");
-    dogListLabel$setText(dogL);
-  labelBaseFolder$setText("/media/data/toSave/paul/AGRIDEA/Base_de_donnée_GPS");
-
 # start the analysis, using the entered data
 startStuff <- function(button, user.data)
 {
@@ -272,12 +238,11 @@ startStuff <- function(button, user.data)
       },
       error = function(e)
       {
-        cs <- sys.calls();
-        #cs2 <- cs[2:(length(cs)-2)];
         msg <- paste("Une erreur s'est produite:", e);
+        errDialog(msg);
+        cs <- sys.calls();
         msg <- paste(msg, "Details:", cs, sep="\n\n" );
         writeLines(msg);
-        errDialog(msg);
       }
     );
     dogListLabel$setText(dogsText);
@@ -409,4 +374,26 @@ create_GUI <- function()
 
 
 create_GUI();
+# temp data to play with
+GUI_dog_data <<- c("Helix_testplot",
+                   "/media/data/toSave/paul/AGRIDEA/Base_de_donnée_GPS/Pfister_2014_Tirex_Agnella_Helix_Soldanella/Helix/",
+                   "/media/data/toSave/paul/AGRIDEA/Base_de_donnée_GPS/Pfister_2014_Tirex_Agnella_Helix_Soldanella/Helix/JHP_Helix_22_23_5_2014.txt",
+                   "/media/data/toSave/paul/AGRIDEA/Base_de_donnée_GPS/Pfister_2014_Tirex_Agnella_Helix_Soldanella/Helix/JHP_mouton1_Helix_22_23_5_2014.txt",
+                   "/media/data/toSave/paul/AGRIDEA/Base_de_donnée_GPS/Pfister_2014_Tirex_Agnella_Helix_Soldanella/Helix/JHP_mouton2_Helix_22_23_5_2014.txt",
+                   0,0,
+                   
+                   "Tirex_testplot" ,
+                   "/media/data/toSave/paul/AGRIDEA/Base_de_donnée_GPS/Pfister_2014_Tirex_Agnella_Helix_Soldanella/Tirex/", 
+                    "/media/data/toSave/paul/AGRIDEA/Base_de_donnée_GPS/Pfister_2014_Tirex_Agnella_Helix_Soldanella/Tirex/JHP_Tirex_10_11_4_2014.txt", 
+                    "/media/data/toSave/paul/AGRIDEA/Base_de_donnée_GPS/Pfister_2014_Tirex_Agnella_Helix_Soldanella/Tirex/JHP_mouton2_Tirex_10_11_4_2014.txt",
+                    "/media/data/toSave/paul/AGRIDEA/Base_de_donnée_GPS/Pfister_2014_Tirex_Agnella_Helix_Soldanella/Tirex/JHP_mouton1_Tirex_10_11_4_2014.txt",
+                    0, 
+                    0
+                   );
+    dogL <- "Chiens choisis: ";
+    for (d in GUI_dog_data[seq(1,length(GUI_dog_data),7)])
+      dogL <- paste(dogL, d, sep = "  ");
+    dogListLabel$setText(dogL);
+  labelBaseFolder$setText("/media/data/toSave/paul/AGRIDEA/Base_de_donnée_GPS");
+
 
