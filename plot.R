@@ -2,8 +2,8 @@
 # used to create PDFs
 library("Cairo");
  
-DEFAULT_PDF_WIDTH <- 12; # 
-DEFAULT_PDF_HEIGHT <- 6; # 
+DEFAULT_PDF_WIDTH <- 12; # inches
+DEFAULT_PDF_HEIGHT <- 6; # inches
 
 
 # plot default values
@@ -83,27 +83,12 @@ pretty_time <- function(t_in)
   return (paste(h,':',m,':',s,sep=""));
 }
 
-
-
-# adds a title to the currently written plot
-add_title_y <- function(title, subtitle, dy, y = 0.03, fig=c(0.49,0.51,0.98,1))
-{
-  par(xpd=NA);
-  par(fig=fig);
-  par(font=2);
-  text(x=c(0),y=c(y), labels=c(title), cex=1.5);
-  par(font=1);
-  text(x=c(0),y=c(dy), labels=c(subtitle), cex=1.25);
-}
-# adds a title to the currently written plot
-add_title <- function(title, subtitle, dy=-0.08)
-{
-  add_title_y(title, subtitle, dy);
-}
-
+# variables used between the function calls
 internal_pdfFolder__ <- "";
 internal_pdfName__ <- "";
 internal_inPDF__ <- FALSE;
+internal_pdfTitle__ <- NULL;
+internal_pdfSubitle__ <- NULL;
 
 checkInPDF <- function()
 {
@@ -151,15 +136,35 @@ startPDF <- function
 
     if ( ! is.null (mfrow))
       par (mfrow=mfrow);
+
+    internal_pdfTitle__ <- NULL;
 }
 
 endPDF <- function ()
 {
+    if ( ! is.null(internal_pdfTitle__) )
+    {
+      mtext (internal_pdfTitle__, outer=TRUE, cex=1.6, font=2);
+      if ( ! is.null(internal_pdfSubitle__) )
+      {
+          mtext (internal_pdfSubitle__, outer=TRUE, padj=1.2, cex=1.2);
+      }
+      internal_pdfTitle__ <<- NULL;
+      internal_pdfSubitle__ <<- NULL;
+    }
     internal_inPDF__ <<- FALSE;
     internal_pdfName__ <<- "";
     dev.off();
-    writeLines("Ending PDF");
 }
+
+# store the title, oma is c(bottom, left, top, right) in number of lines
+preparePDFTitle <- function(title, oma=c(0,0,if (is.null(subtitle)) 2 else 1,0), subtitle=NULL)
+{
+    par(oma=oma);
+    internal_pdfTitle__ <<- title;
+    internal_pdfSubitle__ <<- subtitle;
+}
+
 
 makePlot <- function
   (
@@ -201,7 +206,6 @@ justPlot <- function
     main_transl_args=c(),
     main_direct=NULL,
     sub=NULL,
-    pdf_width=DEFAULT_PDF_WIDTH,
     xlab=DEFAULT_PLOT_X_LAB,
     ylab=DEFAULT_PLOT_Y_LAB,
     useDateLabels=TRUE,
@@ -249,6 +253,38 @@ justPlot <- function
 
   echo <- paste("Graph ",main,"created");
 }
+
+# this is used to draw multiple plots
+quickMultiPlot <- function(
+    ydata, # we use as.data.frame(ydata[i])[,1] .......
+    xdata, # we use xdata[[i]]
+    nplots,
+    transl_key,
+    transl_args,
+    xlab_at,
+    xlabels,
+    mains,
+    xlab=get_translation("time"),
+    extraFn=NULL,
+    subtitle=NULL,
+    ncols=2,
+    col="black")
+{
+  mfrow <- c(as.integer(ceiling((nplots)/ncols)), ncols);
+  startPDF(name=get_trans_filename(transl_key, transl_args), mfrow=mfrow);
+  title <- get_translation (transl_key, transl_args);
+  preparePDFTitle(title, subtitle=subtitle);
+  for (i in 1:nplots)
+  {
+    at_ <- xlab_at[[i]];
+    ls_ <- xlabels[[i]];
+    #x <- datetime_xaxis[[i]];
+    y <- as.data.frame(ydata[i])[,1];
+    justPlot ( x=xdata[[i]], y=y, main_direct=dog_names[i], main_transl_key="", xlab=xlab, col=col, extraFn=extraFn, custom_datetime_labels=ls_, custom_datetime_labels_at=at_);
+  }
+  endPDF();
+}
+
 
 makeHist <- function
   (

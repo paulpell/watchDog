@@ -821,9 +821,11 @@ handle_dogs <- function (base_folder, data_location)
   writeLines(paste("result data exported to",csv_file));
   
   
-  #if (number_dogs > 1)
+  if (number_dogs > 1)
   {
     writeLines( paste("creating comparison graphs, exporting to:\n   ",base_folder));
+
+    # prepare the values used for all the graphs
 
     setPDFFolder ( base_folder );
    
@@ -837,7 +839,8 @@ handle_dogs <- function (base_folder, data_location)
     title_y <- min(0.99, 1 -0.08 / 2^floor((number_dogs - 1) / 2));
     title_fig <- c(0.49,0.51,title_y, 1);
       
-    xlab_multidog <- paste("\n", get_translation("time"));
+    #xlab_multidog <- paste("\n", get_translation("time"));
+    xlab_multidog <- get_translation("time");
 
     datetime_starts <- strptime(results_csv$res_t1, format=output_datetime_format);
     datetime_ends   <- strptime(results_csv$res_t2, format=output_datetime_format);
@@ -851,133 +854,62 @@ handle_dogs <- function (base_folder, data_location)
         datetime_labels[[i]] <- format(datetime_labels_at[[i]], graph_datetime_format);
     }
 
-    writeLines(paste("dog names:", dog_names));
 
     # export boxplot with the distances of all the dogs
     startPDF(name=get_trans_filename("boxplot_all"));
     boxplot(results_dist_closest, names=dog_names, main=get_translation("dists_all_dogs_closest"), ylab=get_translation("dist_km"));
     endPDF();
-    #CairoPDF(paste(base_folder,get_trans_filename("boxplot_all"), ".pdf",sep=""));
-    #boxplot(results_dist_closest, names=data_location[1,], main=get_translation("dists_all_dogs_closest"), ylab=get_translation("dist_km"));
-    #dev.off();
-    writeLines("all1");
     
     # export boxplot with the distances of all the dogs WITHOUT outliers
     startPDF(name=get_trans_filename("boxplot_all_no_outlier"));
     boxplot(results_dist_closest, names=dog_names, main=get_translation("dists_all_dogs_closest"), ylab=get_translation("dist_km"), outline=FALSE);
     endPDF();
-    #CairoPDF(paste(base_folder,get_trans_filename("boxplot_all_no_outlier"), ".pdf",sep=""));
-    #boxplot(results_dist_closest, names=data_location[1,], main=get_translation("dists_all_dogs_closest"), ylab=get_translation("dist_km"), outline=FALSE);
-    #dev.off();
-    writeLines("all2");
     
     # export graph with distance of all dogs to their two sheep
-    key <- c("dists_all_dogs_both");
-    startPDF ( name=get_trans_filename(key), w=width, h=height, mfrow=mfrow );
-#    CairoPDF(paste(base_folder,get_trans_filename("dists_all_dogs_both"), ".pdf",sep=""), width=width, height=height);
-#    par(mfrow=c(nrows, ncols));
-    for (i in 1:number_dogs)
-    {
-      data_m1 <- as.data.frame(results_dist_m1[i]);
-      data_m2 <- as.data.frame(results_dist_m2[i]);
-      at_ <- datetime_labels_at[[i]];
-      ls_ <- datetime_labels[[i]];
-      x <- datetime_xaxis[[i]];
-      #x1 <- 1 : (dim(data_m1)[1]);
-      #x2 <- 1 : (dim(data_m2)[1]);
-      #xlab = paste(base_xlab_multidog,dog_names[i],sep="");
-      #plot(1:(dim(data_m1)[1]), data_m1[,1], type="l", ylab=get_translation("dist_km"), xlab=xlab, ylim=c(0,1), xaxt="n", col="blue");
-      #lines(1:(dim(data_m2)[1]), data_m2[,1], type='l', col='green');
-      extraFn <- function()
-      {
-        lines(x, data_m2[,1], type='l', col='green');
-      }
-      justPlot ( x=x, y=data_m1[,1], main_direct=dog_names[i], main_transl_key="", xlab=xlab_multidog, col="blue", extraFn=extraFn, custom_datetime_labels=ls_, custom_datetime_labels_at=at_);
-    }
-    add_title_y(get_translation(key),"", 0, 0, title_fig);
-    #dev.off();
-    endPDF();
-writeLines("all3");
-    
+#TODO: extraFN to draw the second data set... Maybe not so easy
+    quickMultiPlot (ydata=results_dist_m1, xdata=datetime_xaxis, nplots=number_dogs,
+                        "dists_all_dogs_both", c(), datetime_labels_at,
+                        datetime_labels, dog_names, col="blue");
+        
     # export graph with distances of all dogs to the closest sheep
-    key <- c("dists_all_dogs_closest");
-    startPDF ( name=get_trans_filename(key), w=width, h=height, mfrow=mfrow );
-    #CairoPDF(paste(base_folder,get_trans_filename("dists_all_dogs_closest"), ".pdf",sep=""), width=width, height=height);
-    #par(mfrow=c(nrows, ncols));
-    for (i in 1:number_dogs)
-    {
-      at_ <- datetime_labels_at[[i]];
-      ls_ <- datetime_labels[[i]];
-      x <- datetime_xaxis[[i]];
-      data <- as.data.frame(results_dist_closest[i]);
-      xlab = paste ( base_xlab_multidog, dog_names[i], sep="" );
-      justPlot ( x=x, y=data[,1], main_direct=dog_names[i], main_transl_key="", xlab=xlab_multidog, ylim=c(0,1), custom_datetime_labels=ls_, custom_datetime_labels_at=at_ );
-      #plot(1:(dim(data)[1]), data[,1], type="l", ylab=get_translation("dist_km"), xlab=xlab, ylim=c(0,1), xaxt="n");
-    }
-    add_title_y(get_translation("dists_all_dogs_closest"),"", 0, 0, title_fig);
-    endPDF();
-    #dev.off();
-writeLines("all4");
+    quickMultiPlot (ydata=results_dist_closest, xdata=datetime_xaxis, nplots=number_dogs,
+                        transl_key="dists_all_dogs_closest", transl_args=c(),
+                        xlab_at=datetime_labels_at, xlabels=datetime_labels,
+                        mains=dog_names);
     
     # export graph with distances of all dogs to the mean position of the sheep
-    key <- c("dists_all_dogs_mean");
-    startPDF ( name=get_trans_filename(key), w=width, h=height, mfrow=mfrow );
-    #CairoPDF(paste(base_folder,get_trans_filename("dists_all_dogs_mean"),".pdf",sep=""), width=width, height=height);
-    #par(mfrow=c(nrows, ncols));
-    for (i in 1:number_dogs)
-    {
-      at_ <- datetime_labels_at[[i]];
-      ls_ <- datetime_labels[[i]];
-      x <- datetime_xaxis[[i]];
-      data <- as.data.frame(results_dist_mean[i]);
-      xlab = paste(base_xlab_multidog,dog_names[i],sep="");
-      justPlot ( x=x, y=data[,1], main_direct=dog_names[i], main_transl_key="", xlab=xlab_multidog, ylim=c(0,1), custom_datetime_labels=ls_, custom_datetime_labels_at=at_ );
-      #plot(1:(dim(data)[1]), data[,1], type="l", ylab=get_translation("dist_km"), xlab=xlab, ylim=c(0,1), xaxt="n");
-    }
-    add_title_y(get_translation(key),"", 0, 0, title_fig);
-    endPDF();
-    #dev.off();
-writeLines("all5");
+    quickMultiPlot (ydata=results_dist_mean, xdata=datetime_xaxis, nplots=number_dogs,
+                        transl_key="dists_all_dogs_mean", transl_args=c(),
+                        xlab_at=datetime_labels_at, xlabels=datetime_labels,
+                        mains=dog_names);
     
     
     ## now the same with histograms
     
+#TODO: quickPlot =)
     
     # export graph with distances of all dogs to the closest sheep
     key <- c("hist_dists_all_dogs_closest");
     startPDF ( name=get_trans_filename(key), w=width, h=height, mfrow=mfrow );
-    #CairoPDF(paste(base_folder,get_trans_filename("hist_dists_all_dogs_closest"),".pdf",sep=""), width=width, height=height);
-    #par(mfrow=c(nrows, ncols));
     for (i in 1:number_dogs)
     {
       data <- as.data.frame(results_dist_closest[i]);
-      #xlab=dog_names[i];
       justHist ( data[,1], main_transl_key="", main_direct=dog_names[i], ylim=c(0,12000) );
-      #med <-median(data[,1]);
-      #hist(data[,1], breaks=hist_default_breaks, ylim=c(0,12000), xlim=hist_default_xlim, xlab=dog_names[i], ylab=get_translation("freq"), main="", sub=get_translation("red_median",c(signif(med,digits=4))));
-      #abline(v=med, col="red", lwd=2); # add a red line for the median
     }
     add_title_y(get_translation(key),"", 0, 0, title_fig);
-    #dev.off();
     endPDF();
 writeLines("all6");
     
     # export graph with distances of all dogs to the mean position of the sheep
     key <- c("hist_dists_all_dogs_mean");
     startPDF (name=get_trans_filename(key), w=width, h=height, mfrow=mfrow);
-    #CairoPDF(paste(base_folder,get_trans_filename("hist_dists_all_dogs_mean"),".pdf",sep=""), width=width, height=height);
-    #par(mfrow=c(nrows, ncols));
     for (i in 1:number_dogs)
     {
       data <- as.data.frame(results_dist_mean[i]);
       xlab=dog_names[i];
       justHist (data[,1], main_transl_key="", main_direct=dog_names[i], ylim=c(0,12000));
-      #med <-median(data[,1]);
-      #hist(data[,1], breaks=HIST_DEFAULT_BREAKS, ylim=c(0,12000), xlim=hist_default_xlim, xlab=dog_names[i], ylab=get_translation("freq"), main="", sub=get_translation("red_median",c(signif(med,digits=4))));
-      #abline(v=med, col="red", lwd=2); # add a red line for the median
     }
     add_title_y(get_translation(key),"", 0, 0, title_fig);
-   # dev.off();
     endPDF();
 writeLines("all7");
     
