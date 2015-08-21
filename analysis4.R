@@ -1,4 +1,8 @@
 
+output_datetime_format <- "%d/%m/%Y %H:%M:%S";
+
+graph_datetime_format <- "%d/%m/%y\n%H:%M";
+
 # this function copies the file and removes the first UTF BOM bytes
 # if they are present..
 removeUTFBOM <- function(filename)
@@ -67,31 +71,6 @@ read_files <- function (file_c, file_m1, file_m2)
   
   return(tmp);
 }
-
-# given a time in hours (decimal), gives a nicely formatted string to display, in the form H:M:S
-pretty_time <- function(t_in)
-{
-  h <- trunc(t_in);
-  m <- trunc (60 * (t_in - h));
-  s <- trunc (3600 * (t_in - m / 60 - h));
-  return (paste(h,':',m,':',s,sep=""));
-}
-# adds a title to the currently written plot
-add_title_y <- function(title, subtitle, dy, y = 0.03, fig=c(0.49,0.51,0.98,1))
-{
-  par(xpd=NA);
-  par(fig=fig);
-  par(font=2);
-  text(x=c(0),y=c(y), labels=c(title), cex=2.0);
-  par(font=1);
-  text(x=c(0),y=c(dy), labels=c(subtitle), cex=1.5);
-}
-# adds a title to the currently written plot
-add_title <- function(title, subtitle, dy=-0.08)
-{
-  add_title_y(title, subtitle, dy);
-}
-
 
 # use a data frame to find the 3D position vectors
 # we get (long, lat) positions and need to find a (x,y,z) position
@@ -173,6 +152,8 @@ unify_timestamp <- function (d1, d2)
 
 # remove NaN values for the sums and means
 f_no_nan <- function(x) !is.nan(x);
+filter_no_nan <- function(x) return (Filter(f_no_nan, x));
+len_no_nan <- function (x) return (length(filter_no_nan(x)));
 
 # says if a value is bigger than 0
 f_pos <- function(x) x > 0;
@@ -213,7 +194,7 @@ handle_dog <- function(data_location)
   
   # not sure if this is needed:
   # It is needed when the timestamps are not the same in all the files.
-  if (length(d_c[,1]) != length(d_m1[,1]) | length(d_c[,1]) != length(d_m2[,1]) | length(d_m1[,1]) != length(d_m2[,1]))
+  if (length(d_c[,1]) != length(d_m1[,1]) || length(d_c[,1]) != length(d_m2[,1]) || length(d_m1[,1]) != length(d_m2[,1]))
   {
     tmp1 <- unify_timestamp(d_c,d_m1);
     tmp2 <- unify_timestamp(tmp1[[1]], d_m2);
@@ -301,11 +282,11 @@ handle_dog <- function(data_location)
     }
   }
   
-  c_front_m1_no_nan <- Filter(f_no_nan, c_front_m1);
-  c_front_m2_no_nan <- Filter(f_no_nan, c_front_m2);
+  c_front_m1_no_nan <- filter_no_nan (c_front_m1);
+  c_front_m2_no_nan <- filter_no_nan (c_front_m2);
   
-  c_align_m1_no_nan <- Filter(f_no_nan, align_pos_c_m1);
-  c_align_m2_no_nan <- Filter(f_no_nan, align_pos_c_m2);
+  c_align_m1_no_nan <- filter_no_nan (align_pos_c_m1);
+  c_align_m2_no_nan <- filter_no_nan (align_pos_c_m2);
   
   mean_coord_m1 <- mean(c_front_m1 * align_pos_c_m1, na.rm=TRUE);
   mean_coord_m2 <- mean(c_front_m2 * align_pos_c_m2, na.rm=TRUE);
@@ -373,283 +354,317 @@ handle_dog <- function(data_location)
   #################################
   # write some results out to the console
   fp_str <- paste(fixed_point_N,fixed_point_E);
-  writeLines(get_translation("dist_dog",                        c(dist_abs_c)));
-  writeLines(get_translation("dist_sheep",                      c(1,dist_abs_m1)));
-  writeLines(get_translation("dist_sheep_rel",                  c(1,dist_rel_m1)));
-  writeLines(get_translation("dist_sheep",                      c(2,dist_abs_m2)));
-  writeLines(get_translation("dist_sheep_rel",                  c(2,dist_rel_m2)));
-  writeLines(get_translation("mean_dist_closest",               c(mean_dist_c_closest)));
-  writeLines(get_translation("median_dist_closest",             c(median_dist_c_closest)));
-  writeLines(get_translation("mean_dist_middle",                c(mean_dist_c_m)));
-  writeLines(get_translation("median_dist_middle",              c(median_dist_c_m)));
-  writeLines(get_translation("dog_in_front1000",                c(1, mean_front_m1 * 1000)));
-  writeLines(get_translation("dog_in_front1000",                c(2, mean_front_m2 * 1000)));
-  writeLines(get_translation("dog_aligned100",                  c(1, mean_align_m1 * 100)));
-  writeLines(get_translation("dog_aligned100",                  c(2, mean_align_m2 * 100)));
-  writeLines(get_translation("coord_align_pos",                 c(1, mean_coord_align_pos_m1)));
-  writeLines(get_translation("coord_align_neg",                 c(1, mean_coord_align_neg_m1)));
-  writeLines(get_translation("coord_align_pos",                 c(2, mean_coord_align_pos_m2)));
-  writeLines(get_translation("coord_align_neg",                 c(2, mean_coord_align_neg_m2)));
-  writeLines(get_translation("num_barkings",                    c(sum_barking)));
-  writeLines(get_translation("fixed_pt",                        c(fp_str)));
-  writeLines(get_translation("mean_dist_fixed_pt",              c(mean_dist_fp)));
-  writeLines(get_translation("res_mc1", c(mean_coord_align_pos_right_m1)));
-  writeLines(get_translation("res_mc2",	c(mean_coord_align_pos_left_m1)));
-  writeLines(get_translation("res_mc3",	c(mean_coord_align_neg_right_m1)));
-  writeLines(get_translation("res_mc4",	c(mean_coord_align_neg_left_m1)));
-  writeLines(get_translation("res_mc5",	c(mean_coord_align_pos_right_m2)));
-  writeLines(get_translation("res_mc6",	c(mean_coord_align_pos_left_m2)));
-  writeLines(get_translation("res_mc7",	c(mean_coord_align_neg_right_m2)));
-  writeLines(get_translation("res_mc8",	c(mean_coord_align_neg_left_m2)));
+  wrtr <- function ( key , args = c() )
+  {
+    writeLines ( get_translation (key, args) );
+  }
+  wrtr ("dist_dog",                        c(dist_abs_c));
+  wrtr ("dist_sheep",                      c(1,dist_abs_m1));
+  wrtr ("dist_sheep_rel",                  c(1,dist_rel_m1));
+  wrtr ("dist_sheep",                      c(2,dist_abs_m2));
+  wrtr ("dist_sheep_rel",                  c(2,dist_rel_m2));
+  wrtr ("mean_dist_closest",               c(mean_dist_c_closest));
+  wrtr ("median_dist_closest",             c(median_dist_c_closest));
+  wrtr ("mean_dist_middle",                c(mean_dist_c_m));
+  wrtr ("median_dist_middle",              c(median_dist_c_m));
+  wrtr ("dog_in_front1000",                c(1, mean_front_m1 * 1000));
+  wrtr ("dog_in_front1000",                c(2, mean_front_m2 * 1000));
+  wrtr ("dog_aligned100",                  c(1, mean_align_m1 * 100));
+  wrtr ("dog_aligned100",                  c(2, mean_align_m2 * 100));
+  wrtr ("coord_align_pos",                 c(1, mean_coord_align_pos_m1));
+  wrtr ("coord_align_neg",                 c(1, mean_coord_align_neg_m1));
+  wrtr ("coord_align_pos",                 c(2, mean_coord_align_pos_m2));
+  wrtr ("coord_align_neg",                 c(2, mean_coord_align_neg_m2));
+  wrtr ("num_barkings",                    c(sum_barking));
+  wrtr ("fixed_pt",                        c(fp_str));
+  wrtr ("mean_dist_fixed_pt",              c(mean_dist_fp));
+  wrtr ("res_mc1",                         c(mean_coord_align_pos_right_m1));
+  wrtr ("res_mc2",	                       c(mean_coord_align_pos_left_m1));
+  wrtr ("res_mc3",	                       c(mean_coord_align_neg_right_m1));
+  wrtr ("res_mc4",	                       c(mean_coord_align_neg_left_m1));
+  wrtr ("res_mc5",	                       c(mean_coord_align_pos_right_m2));
+  wrtr ("res_mc6",	                       c(mean_coord_align_pos_left_m2));
+  wrtr ("res_mc7",	                       c(mean_coord_align_neg_right_m2));
+  wrtr ("res_mc8",	                       c(mean_coord_align_neg_left_m2));
   
   
   #################################
   # create graphs
   
   writeLines("\ncreating graphs, takes time!");
-  
-  # first, format the date (x-)axis, one value every 1.5 hour for the full experiment duration
-  # In the text file, the dates are in the "%Y-%m-%d %H:%M:%S" format: year-month-day hour:mins:secs (eg. "2014-22-05 12:00:01").
-  # If it changes, see the R help for the strptime, the formats are explained there.
-  if (is.null(d_c$Time_Date)) {
-    axis_dates <- seq.POSIXt(strptime(d_c$Date_Time[1], "%Y-%m-%d %H:%M:%S"), strptime(d_c$Date_Time[length(d_c$Date_Time)], "%Y-%m-%d %H:%M:%S"), by=1.5*60*60);
-  } else {
-    axis_dates <- seq.POSIXt(strptime(d_c$Time_Date[1], "%H:%M:%S-%d.%m.%Y"), strptime(d_c$Time_Date[length(d_c$Time_Date)], "%H:%M:%S-%d.%m.%Y"), by=1.5*60*60);
-  }
-  # create the text format for the axis: %d->day,%m->month, etc.. example: 22/05/14 12:34 (%Y is for 2014, %y for 14)
-  axis_labels <- format(axis_dates, "%d/%m/%y\n%H:%M");
-  
-  
-  #########################################
-  #
-  # explanations for the graphs:
-  # 5 functions are used: jpeg(), par(), plot(), axis() and dev.off()
-  #
-  
-  # jpeg() function
-  # ==============
-  # opens an image file in the png format to draw in it
-  # the "cairo" type looks like the best, so it is used here =)
-  # the "bg" argument (here "white) specifies the color of the background of the image.
-  # 
-  
-  # par() function
-  # ===============
-  # par(mfrow=c(x,y)) tells to create x*y graphs in x rows and y columns
-  # par(mfrow=c(2,1)) creates 2 graphs in 2 rows and 1 column
-  #
-  
-  # plot() function
-  # =============
-  # actually draws the graph
-  # the 2 first arguments are the x and y values in vectors
-  # type "l" creates lines, type "o" is the default and creates circles at every point
-  # xlab, ylab specify the name of the axis (x and y labels)
-  # main gives the main title of the graph
-  # xaxt="n" tells not to create the x axis, as we want to customize it!
-  #
-  
-  # axis() function
-  # =============
-  # creates an axis
-  # the first argument (here "1") specifies which axis to draw (here bottom)
-  # the values are the text values for the dates, instead of the timestamps
-  # padj tells to move the values a little down.
-  #
-  
-  # dev.off() function
-  # =================
-  # closes the png file, otherwise the graph would be replaced with the next plot() function call
-  # This is absolutely needed!!!
-  #
-  
-  width <- 12;
-  
-  xlim_max <- 0.1;
-  hist_default_breaks <- seq(0, 2, xlim_max / HISTOGRAM_CLASSES);
-  hist_default_xlim <- c(0,xlim_max);
-  
-  CairoPDF(paste(folder,get_trans_filename("graph_dist_fp", c(dog_name, fp_str)),".pdf",sep=""), width=width);
-  plot(d_c$Timestamp, norms_c_fp, type="l", main=get_translation("graph_dist_fp", c(dog_name, fp_str)), ylab=get_translation("dist_km"), xlab=get_translation("date"), xaxt="n");
-  axis(1,at=axis_dates, labels=axis_labels, padj=0.5);
-  dev.off();
-  writeLines("dist_chien_fixedpoint created");
-  
-  
-  CairoPDF(paste(folder,get_trans_filename("hist_dist_fp", c(dog_name, fp_str)),".pdf",sep=""), width=width);
-  med <- median(norms_c_fp);
-  breaks <- seq(0,2*med,2*med / HISTOGRAM_CLASSES);
-  hist(norms_c_fp, breaks=breaks, xlim=c(0,2*med), xlab=get_translation("dist_km"), ylab=get_translation("freq"), main=get_translation("hist_dist_fp",c(dog_name, fp_str)),sub=get_translation("red_median", c(signif(med,digits=4))));
-  abline(v=med, col="red", lwd=2); # add a red line for the median
-  dev.off();
-  writeLines("dist_chien_fixedpoint created");
-  
-  CairoPDF(paste(folder,get_trans_filename("graph_closest", c(dog_name)),".pdf",sep=""), width=width);
-  plot(d_c$Timestamp, dist_c_closest, type="l", main=get_translation("graph_closest", c(dog_name)), ylab=get_translation("dist_km"), xlab=get_translation("date"), xaxt="n");
-  axis(1,at=axis_dates, labels=axis_labels, padj=0.5);
-  dev.off();
-  writeLines("dist_chien created");
-  
-  # normalised distance dog-sheep mouton le plus proche
-  CairoPDF(paste(folder,get_trans_filename("graph_closest_norm", c(dog_name)),".pdf",sep=""), width=width);
-  plot(d_c$Timestamp, dist_c_closest, type="l", main=get_translation("graph_closest_norm", c(dog_name)), ylab=get_translation("dist_km"), xlab=get_translation("date"), ylim=c(0,1), xaxt="n");
-  #points(barking_timestamps, barking_values, col="red");
-  axis(1,at=axis_dates, labels=axis_labels, padj=0.5);
-  dev.off();
-  writeLines("dist_chien_normalised created");
-   
-  # histogram of the distances dog-sheep mouton le plus proche
-  CairoPDF(paste(folder,get_trans_filename("graph_hist_dist_closest",c(dog_name)),".pdf",sep=""), width=width);
-  med <-median(dist_c_closest);
-  hist(dist_c_closest, breaks=hist_default_breaks, xlim=hist_default_xlim, xlab=get_translation("dist_km"), ylab=get_translation("freq"), main=get_translation("graph_hist_dist_closest",c(dog_name)),sub=get_translation("red_median", c(signif(med,digits=4))));
-  abline(v=median(dist_c_closest), col="red", lwd=2); # add a red line for the median
-  dev.off();
-  writeLines("histogram distance dog-sheep created");
-  
-  # distance dog-sheep ? la position moyenne du mouton
-  CairoPDF(paste(folder,get_trans_filename("graph_dist_mean", c(dog_name)), ".pdf",sep=""), width=width);
-  plot(d_c$Timestamp, dist_c_m, type="l", main=get_translation("graph_dist_mean", c(dog_name)), ylab=get_translation("dist_km"), xlab=get_translation("date"), xaxt="n");
-  axis(1,at=axis_dates, labels=axis_labels, padj=0.5);
-  dev.off();
-  writeLines("dist_chien created");
-  
-  # normalised distance dog-sheep ? la position moyenne du mouton
-  CairoPDF(paste(folder,get_trans_filename("graph_dist_mean_norm", c(dog_name)), ".pdf",sep=""), width=width);
-  plot(d_c$Timestamp, dist_c_m, type="l", main=get_translation("graph_dist_mean_norm", c(dog_name)), ylab=get_translation("dist_km"), xlab=get_translation("date"), ylim=c(0,1), xaxt="n");
-  axis(1,at=axis_dates, labels=axis_labels, padj=0.5);
-  dev.off();
-  writeLines("dist_chien_normalised created");
-    
-  # histogram of the distances dog-sheep ? la position moyenne du mouton
-  CairoPDF(paste(folder,get_trans_filename("graph_hist_dist_mean", c(dog_name)), ".pdf",sep=""), width=width);
-  med <-median(dist_c_m);
-  hist(dist_c_m, breaks=hist_default_breaks, xlim=hist_default_xlim, main=get_translation("graph_hist_dist_mean", c(dog_name)), sub=get_translation("red_median",c(signif(med,digits=4))), xlab=get_translation("dist_km"), ylab=get_translation("freq"));
-  abline(v=med, col="red", lwd=2); # add a red line for the median
-  dev.off();
-  writeLines("histogram distance dog-meansheep created"); 
-   
-  # Distance CPT aux 2 moutons
 
-  CairoPDF(paste(folder,get_trans_filename("graph_dist_both_sheep", c(dog_name)),".pdf",sep=""), width=width);
-  {
-    data_m1 <- as.data.frame(dist_c_m1);
-    data_m2 <- as.data.frame(dist_c_m2);
-    plot(d_c$Timestamp, data_m1[,1], main=get_translation("graph_dist_both_sheep", c(dog_name)), type="l", ylab=get_translation("dist_km"), xlab=get_translation("date"), xaxt="n", col="blue");
-    lines(d_c$Timestamp, data_m2[,1], type='l', col='green', xaxt='n');
-    axis(1,at=axis_dates, labels=axis_labels, padj=0.5);
-  }
-  dev.off();
-  
-  # orientation + in front of
-  
-  can_draw_align_front <- TRUE;
-  if (length(c_align_m1_no_nan) == 0 | length(c_align_m2_no_nan) == 0 | length(c_front_m1_no_nan) == 0 | length(c_front_m2_no_nan) == 0)
-    can_draw_align_front <- FALSE;
-  
-  if (can_draw_align_front)
-  {
-    has_coord_m1pos <- length(Filter(f_no_nan, coord_m1_positive_alignment)) != 0;
-    has_coord_m2pos <- length(Filter(f_no_nan, coord_m2_positive_alignment)) != 0;
-    has_coord_m1neg <- length(Filter(f_no_nan, coord_m1_negative_alignment)) != 0;
-    has_coord_m2neg <- length(Filter(f_no_nan, coord_m2_negative_alignment)) != 0;
-    max_freq <- max(
-      if (has_coord_m1pos) max(hist(coord_m1_positive_alignment, plot=FALSE)$counts) else 0,
-      if (has_coord_m2pos) max(hist(coord_m2_positive_alignment, plot=FALSE)$counts) else 0,
-      if (has_coord_m1neg) max(hist(coord_m1_negative_alignment, plot=FALSE)$counts) else 0,
-      if (has_coord_m2neg) max(hist(coord_m2_negative_alignment, plot=FALSE)$counts) else 0
-    );
-    
-    
-    # create the histogram with columns on top and bottom
-    
-    red <- rgb(1,0,0,0.5);
-    yellow <- rgb(1,1,0,0.5);
-    blue <- rgb(0,0,1,0.5);
-    green <- rgb(0,1,0,0.5);
-    text_x_left <- -0.5;
-    text_x_right <- 0.5;
-    max_pos_freq <- 0;
-    bs <- seq(-1,1,1/HISTOGRAM_CLASSES);
-    if (has_coord_m1pos) hist_coord_pos_m1 <- hist(coord_m1_positive_alignment, plot=FALSE, breaks=bs);
-    if (has_coord_m1neg) hist_coord_neg_m1 <- hist(coord_m1_negative_alignment, plot=FALSE, breaks=bs);
-    if (has_coord_m2pos) hist_coord_pos_m2 <- hist(coord_m2_positive_alignment, plot=FALSE, breaks=bs);
-    if (has_coord_m2neg) hist_coord_neg_m2 <- hist(coord_m2_negative_alignment, plot=FALSE, breaks=bs);
-    sum_m1 <- (if (has_coord_m1pos) sum(hist_coord_pos_m1$counts) else 0) + (if (has_coord_m1neg) sum(hist_coord_neg_m1$counts) else 0);
-    if (has_coord_m1pos) hist_coord_pos_m1$counts <- hist_coord_pos_m1$counts / sum_m1;
-    if (has_coord_m1neg) hist_coord_neg_m1$counts <- hist_coord_neg_m1$counts / sum_m1;
-    max1 <- max(if (has_coord_m1pos) max(hist_coord_pos_m1$counts) else 0, if (has_coord_m1neg) max(hist_coord_neg_m1$counts) else 0);
-    if (max1 > max_pos_freq) max_pos_freq <- max1;
-    sum_m2 <- (if (has_coord_m2pos) sum(hist_coord_pos_m2$counts) else 0) + (if (has_coord_m2neg) sum(hist_coord_neg_m2$counts) else 0);
-    if (has_coord_m2pos) hist_coord_pos_m2$counts <- hist_coord_pos_m2$counts / sum_m2;
-    if (has_coord_m2neg) hist_coord_neg_m2$counts <- hist_coord_neg_m2$counts / sum_m2;
-    max2 <- max(if (has_coord_m2pos) max(hist_coord_pos_m2$counts) else 0, if (has_coord_m2neg) max(hist_coord_neg_m2$counts) else 0);
-    if (max2 > max_pos_freq) max_pos_freq <- max2;
-    mean_pos_m1 <- if (has_coord_m1pos) mean(hist_coord_pos_m1$counts, na.rm=TRUE) else 0;
-    mean_neg_m1 <- if (has_coord_m1neg) mean(hist_coord_neg_m1$counts, na.rm=TRUE) else 0;
-    mean_pos_m2 <- if (has_coord_m2pos) mean(hist_coord_pos_m2$counts, na.rm=TRUE) else 0;
-    mean_neg_m2 <- if (has_coord_m2neg) mean(hist_coord_neg_m2$counts, na.rm=TRUE) else 0;
-    
-    
-    hist_posneg_labels_top <- c(get_translation("graph_align_pos_left_label"), get_translation("graph_align_pos_right_label"));
-    hist_posneg_labels_bot <- c(get_translation("graph_align_neg_left_label"), get_translation("graph_align_neg_right_label"));
-    text_y_top <- 1.03 * max_pos_freq;
-    text_y_bottom <- 1.03 * -max_pos_freq;
-    CairoPDF(paste(folder,get_translation("graph_hist_coord_both_sheep_filename",c(dog_name)),"_",1000*filter_dist,"m.pdf", sep=""), width=17);
-    par(mfrow=c(1,2));
-    if (has_coord_m1pos) plot(hist_coord_pos_m1, ylim=c(-max_pos_freq, max_pos_freq), col=red, xlab="", ylab=get_translation("rel_freq"), main=get_translation("sheep_i", c(1)));
-    if (has_coord_m1neg)
-    {
-      hist_coord_neg_m1$counts <- -hist_coord_neg_m1$counts;
-      if (has_coord_m1pos) lines(hist_coord_neg_m1, col=blue)
-      else plot(hist_coord_neg_m1, ylim=c(-max_pos_freq, max_pos_freq), col=red, xlab="", ylab=get_translation("rel_freq"), main=get_translation("sheep_i", c(1)));
-    }
-    text(x=c(text_x_left, text_x_right), y=c(text_y_top), labels=hist_posneg_labels_top);
-    text(x=c(text_x_left, text_x_right), y=c(text_y_bottom), labels=hist_posneg_labels_bot);
-    abline(v=0);
-    if (has_coord_m2pos) plot(hist_coord_pos_m2, ylim=c(-max_pos_freq, max_pos_freq), col=yellow, xlab="", ylab=get_translation("rel_freq"), main=get_translation("sheep_i", c(2)));
-    if (has_coord_m2neg)
-    {
-      hist_coord_neg_m2$counts <- -hist_coord_neg_m2$counts;
-      if (has_coord_m2pos) lines(hist_coord_neg_m2, col=green)
-      else plot(hist_coord_neg_m2, ylim=c(-max_pos_freq, max_pos_freq), col=yellow, xlab="", ylab=get_translation("rel_freq"), main=get_translation("sheep_i", c(2)));
-    }
-    text(x=c(text_x_left, text_x_right), y=c(text_y_top), labels=hist_posneg_labels_top);
-    text(x=c(text_x_left, text_x_right), y=c(text_y_bottom), labels=hist_posneg_labels_bot);
-    abline(v=0);
-    par(xpd=NA);
-    par(fig=c(0.49,0.51,0.95,1));
-    par(font=2);
-    text(x=c(0),y=c(0), labels=c(get_translation("graph_hist_coord_both_sheep", c(dog_name))), cex=1.5);
-    dev.off();
-    writeLines("histogram separated alignments created");
-    
-  } else {
-    writeLines("dog_sheep_orientation + in_front NOT created");
-    writeLines("Coordination dog-sheep graph NOT created");
-    writeLines("histogram separated alignments NOT created");
-  }
-  
-  writeLines("");
-  writeLines("");
-  # find the start and end date-time of the test
-  if (is.null(d_c$Time_Date))
-  {
-    start_date_time <- strptime(d_c$Date_Time[1], "%Y-%m-%d %H:%M:%S");
-    end_date_time <- strptime(d_c$Date_Time[length(d_c$Date_Time)], "%Y-%m-%d %H:%M:%S");
-  } else {
-    start_date_time <- strptime(d_c$Time_Date[1], "%H:%M:%S-%d.%m.%Y");
-    end_date_time <- strptime(d_c$Time_Date[length(d_c$Time_Date)], "%H:%M:%S-%d.%m.%Y");
-  }
-  
-  if (is.null(d_c$Time_Date))
-  {
-    axis_dates <- seq.POSIXt(strptime(d_c$Date_Time[1], "%Y-%m-%d %H:%M:%S"), strptime(d_c$Date_Time[length(d_c$Date_Time)], "%Y-%m-%d %H:%M:%S"), by=1.5*60*60)
-  } else {
-    axis_dates <- seq.POSIXt(strptime(d_c$Time_Date[1], "%H:%M:%S-%d.%m.%Y"), strptime(d_c$Time_Date[length(d_c$Time_Date)], "%H:%M:%S-%d.%m.%Y"), by=1.5*60*60);
-  }
+  # first format date and time for the axis
+  datetime_input_format <-
+    if (is.null(d_c$Time_Date))
+      "%Y-%m-%d %H:%M:%S"
+    else
+      "%H:%M:%S-%d.%m.%Y";
+  datetime_vector <-
+    if (is.null(d_c$Time_Date))
+      d_c$Date_Time
+    else
+      d_c$Time_Date;
+
+  x_time_data <- as.POSIXct(datetime_vector, format=datetime_input_format);
+  #start_date_time <- strptime(datetime_vector[1], format=datetime_input_format);
+  start_date_time <- x_time_data[1];
+  #end_date_time <- strptime(d_c$Date_Time[length(d_c$Date_Time)], format=datetime_input_format);
+#  end_date_time <- strptime(tail(datetime_vector, n=1), format=datetime_input_format);
+  end_date_time <- tail(x_time_data, n=1);
+  axis_dates <<- seq.POSIXt(start_date_time, end_date_time, by=1.5*60*60);
+  #  x_time_data <- as.POSIXct(d_c$Time_Date);
+  #  start_date_time <- strptime(d_c$Time_Date[1], );
+  #  end_date_time <- strptime(d_c$Time_Date[length(d_c$Time_Date)], "%H:%M:%S-%d.%m.%Y");
+  #  axis_dates <<- seq.POSIXt(start_date_time, end_date_time, by=1.5*60*60);
   duration <- pretty_time(end_date_time - start_date_time);
   
+  axis_labels <<- format(axis_dates, graph_datetime_format);
+
   
+
+#  writeLines(("axis_dates="));#, range(axis_dates)));
+#  print(axis_dates);
+#  writeLines(("range(x_time_data)="));#, range(x_time_data)));
+#  print(x_time_data);
+#  writeLines(paste("rstart_date_time=", start_date_time));
+#  writeLines(paste("end_date_time=", end_date_time));
+#  writeLines(("axis_labels="));#,axis_labels));
+#  print(axis_labels);
+
+  #width <- 12;
+  #
+  #xlim_max <- 0.1;
+  #hist_default_breaks <- seq(0, 2, xlim_max / HISTOGRAM_CLASSES);
+  #hist_default_xlim <- c(0,xlim_max);
+
+  draw_graphs_1dog <- function()
+  {
+  
+    setPDFFolder ( folder );
+    
+    key <- "graph_dist_fp";
+    args <- c(dog_name, fp_str);
+    writeLines(paste("Key=",key,", args=", args));
+    test1 <- get_trans_filename(key, args);
+    writeLines(test1);
+    test2 <- get_translation(key, args);
+    writeLines(test2);
+    makePlot( x=x_time_data, y=norms_c_fp, name_transl_key=key, name_transl_args=args );
+    #CairoPDF(paste(folder,get_trans_filename("graph_dist_fp", c(dog_name, fp_str)),".pdf",sep=""), width=width);
+    #plot(d_c$Timestamp, norms_c_fp, type="l", main=get_translation("graph_dist_fp", c(dog_name, fp_str)), ylab=get_translation("dist_km"), xlab=get_translation("date"), xaxt="n");
+    #axis(1,at=axis_dates, labels=axis_labels, padj=0.5);
+    #dev.off();
+    writeLines("1: dist_chien_fixedpoint created");
+  
+    
+    key <- "hist_dist_fp";
+    args <- c(dog_name, fp_str);
+    makeHist( x=norms_c_fp, name_transl_key=key, name_transl_args=args, useDefaultBreaks=FALSE );
+    #CairoPDF(paste(folder,get_trans_filename("hist_dist_fp", c(dog_name, fp_str)),".pdf",sep=""), width=width);
+    #med <- median(norms_c_fp);
+    #breaks <- seq(0,2*med,2*med / HISTOGRAM_CLASSES);
+    #hist(norms_c_fp, breaks=breaks, xlim=c(0,2*med), xlab=get_translation("dist_km"), ylab=get_translation("freq"), main=get_translation("hist_dist_fp",c(dog_name, fp_str)),sub=get_translation("red_median", c(signif(med,digits=4))));
+    #abline(v=med, col="red", lwd=2); # add a red line for the median
+    #dev.off();
+    writeLines("2: dist_chien_fixedpoint created");
+    
+    key <- "graph_closest";
+    args <- c(dog_name);
+    makePlot( x=x_time_data, y=dist_c_closest, name_transl_key=key, name_transl_args=args );
+    #CairoPDF(paste(folder,get_trans_filename("graph_closest", c(dog_name)),".pdf",sep=""), width=width);
+    #plot(d_c$Timestamp, dist_c_closest, type="l", main=get_translation("graph_closest", c(dog_name)), ylab=get_translation("dist_km"), xlab=get_translation("date"), xaxt="n");
+    #axis(1,at=axis_dates, labels=axis_labels, padj=0.5);
+    #dev.off();
+    writeLines("3: dist_chien created");
+    
+    # normalised distance dog-sheep mouton le plus proche
+    key <- "graph_closest_norm";
+    args <- c(dog_name);
+    makePlot ( x=x_time_data, y=dist_c_closest, name_transl_key=key, name_transl_args=args, ylim=c(0,1));
+    #CairoPDF(paste(folder,get_trans_filename("graph_closest_norm", c(dog_name)),".pdf",sep=""), width=width);
+    #plot(d_c$Timestamp, dist_c_closest, type="l", main=get_translation("graph_closest_norm", c(dog_name)), ylab=get_translation("dist_km"), xlab=get_translation("date"), ylim=c(0,1), xaxt="n");
+    ##points(barking_timestamps, barking_values, col="red");
+    #axis(1,at=axis_dates, labels=axis_labels, padj=0.5);
+    #dev.off();
+    writeLines("4: dist_chien_normalised created");
+     
+    # histogram of the distances dog-sheep mouton le plus proche
+    key <- "graph_hist_dist_closest";
+    args <- c(dog_name);
+    makeHist ( x=dist_c_closest, name_transl_key=key, name_transl_args=args, useDefaultBreaks=FALSE );
+    #CairoPDF(paste(folder,get_trans_filename("graph_hist_dist_closest",c(dog_name)),".pdf",sep=""), width=width);
+    #med <-median(dist_c_closest);
+    #hist(dist_c_closest, breaks=hist_default_breaks, xlim=hist_default_xlim, xlab=get_translation("dist_km"), ylab=get_translation("freq"), main=get_translation("graph_hist_dist_closest",c(dog_name)),sub=get_translation("red_median", c(signif(med,digits=4))));
+    #abline(v=median(dist_c_closest), col="red", lwd=2); # add a red line for the median
+    #dev.off();
+    writeLines("5: histogram distance dog-sheep created");
+    
+    # distance dog-sheep ? la position moyenne du mouton
+    key <- "graph_dist_mean";
+    args <- c(dog_name);
+    makePlot( x=x_time_data, y=dist_c_m, name_transl_key=key, name_transl_args=args);
+    #CairoPDF(paste(folder,get_trans_filename("graph_dist_mean", c(dog_name)), ".pdf",sep=""), width=width);
+    #plot(d_c$Timestamp, dist_c_m, type="l", main=get_translation("graph_dist_mean", c(dog_name)), ylab=get_translation("dist_km"), xlab=get_translation("date"), xaxt="n");
+    #axis(1,at=axis_dates, labels=axis_labels, padj=0.5);
+    #dev.off();
+    writeLines("6: dist_chien created");
+    
+    # normalised distance dog-sheep ? la position moyenne du mouton
+    key <- "graph_dist_mean_norm";
+    args <- c(dog_name);
+    makePlot( x=x_time_data, y=dist_c_m, name_transl_key=key, name_transl_args=args, ylim=c(0,1));
+    #CairoPDF(paste(folder,get_trans_filename("graph_dist_mean_norm", c(dog_name)), ".pdf",sep=""), width=width);
+    #plot(d_c$Timestamp, dist_c_m, type="l", main=get_translation("graph_dist_mean_norm", c(dog_name)), ylab=get_translation("dist_km"), xlab=get_translation("date"), ylim=c(0,1), xaxt="n");
+    #axis(1,at=axis_dates, labels=axis_labels, padj=0.5);
+    #dev.off();
+    writeLines("7: dist_chien_normalised created");
+      
+    # histogram of the distances dog-sheep ? la position moyenne du mouton
+    key <- "graph_hist_dist_mean";
+    args <- c(dog_name);
+    makeHist ( x=dist_c_m, name_transl_key=key, name_transl_args=args, useDefaultBreaks=FALSE );
+    #CairoPDF(paste(folder,get_trans_filename("graph_hist_dist_mean", c(dog_name)), ".pdf",sep=""), width=width);
+    #med <-median(dist_c_m);
+    #hist(dist_c_m, breaks=hist_default_breaks, xlim=hist_default_xlim, main=get_translation("graph_hist_dist_mean", c(dog_name)), sub=get_translation("red_median",c(signif(med,digits=4))), xlab=get_translation("dist_km"), ylab=get_translation("freq"));
+    #abline(v=med, col="red", lwd=2); # add a red line for the median
+    #dev.off();
+    writeLines("8: histogram distance dog-meansheep created"); 
+     
+    # Distance CPT aux 2 moutons
+  
+    key <- "graph_dist_both_sheep";
+    args <- c(dog_name);
+    data_m1 <- as.data.frame(dist_c_m1);
+    data_m2 <- as.data.frame(dist_c_m2);
+    extraFn <- function ()
+    {
+      lines(x_time_data, data_m2[,1], type='l', col='green', xaxt='n');
+    }
+    makePlot ( x=x_time_data, y=data_m1[,1], name_transl_key=key, name_transl_args=args, col="blue", extraFn=extraFn );
+    #CairoPDF(paste(folder,get_trans_filename("graph_dist_both_sheep", c(dog_name)),".pdf",sep=""), width=width);
+    #{
+    #  data_m1 <- as.data.frame(dist_c_m1);
+    #  data_m2 <- as.data.frame(dist_c_m2);
+    #  plot(d_c$Timestamp, data_m1[,1], main=get_translation("graph_dist_both_sheep", c(dog_name)), type="l", ylab=get_translation("dist_km"), xlab=get_translation("date"), xaxt="n", col="blue");
+    #  lines(d_c$Timestamp, data_m2[,1], type='l', col='green', xaxt='n');
+    #  axis(1,at=axis_dates, labels=axis_labels, padj=0.5);
+    #}
+    #dev.off();
+    writeLines("9: plot distance dog-bothsheep created"); 
+  
+
+
+    # orientation + in front of
+    
+    #can_draw_align_front <- TRUE;
+    #if (length(c_align_m1_no_nan) == 0 || length(c_align_m2_no_nan) == 0 || length(c_front_m1_no_nan) == 0 || length(c_front_m2_no_nan) == 0)
+      #can_draw_align_front <- FALSE;
+    can_draw_align_front <- 
+      ! (
+           length(c_align_m1_no_nan) == 0
+        || length(c_align_m2_no_nan) == 0
+        || length(c_front_m1_no_nan) == 0
+        || length(c_front_m2_no_nan) == 0
+      );
+    
+    if (can_draw_align_front)
+    {
+      has_coord_m1pos <- len_no_nan (coord_m1_positive_alignment) != 0;
+      has_coord_m2pos <- len_no_nan (coord_m2_positive_alignment) != 0;
+      has_coord_m1neg <- len_no_nan (coord_m1_negative_alignment) != 0;
+      has_coord_m2neg <- len_no_nan (coord_m2_negative_alignment) != 0;
+      max_freq <- max(
+        if (has_coord_m1pos) max(hist(coord_m1_positive_alignment, plot=FALSE)$counts) else 0,
+        if (has_coord_m2pos) max(hist(coord_m2_positive_alignment, plot=FALSE)$counts) else 0,
+        if (has_coord_m1neg) max(hist(coord_m1_negative_alignment, plot=FALSE)$counts) else 0,
+        if (has_coord_m2neg) max(hist(coord_m2_negative_alignment, plot=FALSE)$counts) else 0
+      );
+      
+      
+      # create the histogram with columns on top and bottom
+      
+      #red <- rgb(1,0,0,0.5);
+      #yellow <- rgb(1,1,0,0.5);
+      #blue <- rgb(0,0,1,0.5);
+      #green <- rgb(0,1,0,0.5);
+      text_x_left <- -0.5;
+      text_x_right <- 0.5;
+      max_pos_freq <- 0;
+      bs <- seq(-1,1,1/HISTOGRAM_CLASSES);
+      if (has_coord_m1pos) hist_coord_pos_m1 <- hist(coord_m1_positive_alignment, plot=FALSE, breaks=bs);
+      if (has_coord_m1neg) hist_coord_neg_m1 <- hist(coord_m1_negative_alignment, plot=FALSE, breaks=bs);
+      if (has_coord_m2pos) hist_coord_pos_m2 <- hist(coord_m2_positive_alignment, plot=FALSE, breaks=bs);
+      if (has_coord_m2neg) hist_coord_neg_m2 <- hist(coord_m2_negative_alignment, plot=FALSE, breaks=bs);
+      sum_m1 <- (if (has_coord_m1pos) sum(hist_coord_pos_m1$counts) else 0) + (if (has_coord_m1neg) sum(hist_coord_neg_m1$counts) else 0);
+  
+      if (has_coord_m1pos) hist_coord_pos_m1$counts <- hist_coord_pos_m1$counts / sum_m1;
+      if (has_coord_m1neg) hist_coord_neg_m1$counts <- hist_coord_neg_m1$counts / sum_m1;
+      max1 <- max(if (has_coord_m1pos) max(hist_coord_pos_m1$counts) else 0, if (has_coord_m1neg) max(hist_coord_neg_m1$counts) else 0);
+      if (max1 > max_pos_freq) max_pos_freq <- max1;
+      sum_m2 <- (if (has_coord_m2pos) sum(hist_coord_pos_m2$counts) else 0) + (if (has_coord_m2neg) sum(hist_coord_neg_m2$counts) else 0);
+      if (has_coord_m2pos) hist_coord_pos_m2$counts <- hist_coord_pos_m2$counts / sum_m2;
+      if (has_coord_m2neg) hist_coord_neg_m2$counts <- hist_coord_neg_m2$counts / sum_m2;
+      max2 <- max(if (has_coord_m2pos) max(hist_coord_pos_m2$counts) else 0, if (has_coord_m2neg) max(hist_coord_neg_m2$counts) else 0);
+      if (max2 > max_pos_freq) max_pos_freq <- max2;
+  
+      mean_pos_m1 <- if (has_coord_m1pos) mean(hist_coord_pos_m1$counts, na.rm=TRUE) else 0;
+      mean_neg_m1 <- if (has_coord_m1neg) mean(hist_coord_neg_m1$counts, na.rm=TRUE) else 0;
+      mean_pos_m2 <- if (has_coord_m2pos) mean(hist_coord_pos_m2$counts, na.rm=TRUE) else 0;
+      mean_neg_m2 <- if (has_coord_m2neg) mean(hist_coord_neg_m2$counts, na.rm=TRUE) else 0;
+      
+      hist_posneg_labels_top <- c(get_translation("graph_align_pos_left_label"), get_translation("graph_align_pos_right_label"));
+      hist_posneg_labels_bot <- c(get_translation("graph_align_neg_left_label"), get_translation("graph_align_neg_right_label"));
+      text_y_top <- 1.03 * max_pos_freq;
+      text_y_bottom <- 1.03 * -max_pos_freq;
+      CairoPDF(paste(folder,get_translation("graph_hist_coord_both_sheep_filename",c(dog_name)),"_",1000*filter_dist,"m.pdf", sep=""), width=17);
+      par(mfrow=c(1,2));
+      if (has_coord_m1pos) plot(hist_coord_pos_m1, ylim=c(-max_pos_freq, max_pos_freq), col="red", xlab="", ylab=get_translation("rel_freq"), main=get_translation("sheep_i", c(1)));
+      if (has_coord_m1neg)
+      {
+        hist_coord_neg_m1$counts <- -hist_coord_neg_m1$counts;
+        if (has_coord_m1pos) lines(hist_coord_neg_m1, col="blue")
+        else plot(hist_coord_neg_m1, ylim=c(-max_pos_freq, max_pos_freq), col="red", xlab="", ylab=get_translation("rel_freq"), main=get_translation("sheep_i", c(1)));
+      }
+      text(x=c(text_x_left, text_x_right), y=c(text_y_top), labels=hist_posneg_labels_top);
+      text(x=c(text_x_left, text_x_right), y=c(text_y_bottom), labels=hist_posneg_labels_bot);
+      abline(v=0);
+      if (has_coord_m2pos) plot(hist_coord_pos_m2, ylim=c(-max_pos_freq, max_pos_freq), col="yellow", xlab="", ylab=get_translation("rel_freq"), main=get_translation("sheep_i", c(2)));
+      if (has_coord_m2neg)
+      {
+        hist_coord_neg_m2$counts <- -hist_coord_neg_m2$counts;
+        if (has_coord_m2pos) lines(hist_coord_neg_m2, col="green")
+        else plot(hist_coord_neg_m2, ylim=c(-max_pos_freq, max_pos_freq), col="yellow", xlab="", ylab=get_translation("rel_freq"), main=get_translation("sheep_i", c(2)));
+      }
+      text(x=c(text_x_left, text_x_right), y=c(text_y_top), labels=hist_posneg_labels_top);
+      text(x=c(text_x_left, text_x_right), y=c(text_y_bottom), labels=hist_posneg_labels_bot);
+      abline(v=0);
+      par(xpd=NA);
+      par(fig=c(0.49,0.51,0.95,1));
+      par(font=2);
+      text(x=c(0),y=c(0), labels=c(get_translation("graph_hist_coord_both_sheep", c(dog_name))), cex=1.5);
+      dev.off();
+      writeLines("histogram separated alignments created");
+      
+    } else {
+      writeLines("dog_sheep_orientation + in_front NOT created");
+      writeLines("Coordination dog-sheep graph NOT created");
+      writeLines("histogram separated alignments NOT created");
+    }
+    
+    writeLines("");
+    writeLines("");
+  
+  
+  }
+
+  makeGraphs1Dog <- FALSE;
+  if (makeGraphs1Dog)
+    draw_graphs_1dog()
+  else
+    writeLines(paste("SKIPPING GRAPHS FOR DOG", dog_name));
+
+  
+    
   # return the distance to the closest sheep for outside the function
   csv_results <- data.frame(
     res_n=c(dog_name),
@@ -682,8 +697,8 @@ handle_dog <- function(data_location)
     res_mc8 = c(mean_coord_align_neg_left_m2 *100),
     res_fp1 = c(fp_str),
     res_fp2 = c(mean_dist_fp),
-    res_t1  = c(format(start_date_time, "%d/%m/%Y %H:%M:%S")),
-    res_t2  = c(format(end_date_time, "%d/%m/%Y %H:%M:%S")),
+    res_t1  = c(format(start_date_time, output_datetime_format)),
+    res_t2  = c(format(end_date_time, output_datetime_format)),
     res_t3  = c(duration)
   );
   
@@ -806,96 +821,165 @@ handle_dogs <- function (base_folder, data_location)
   writeLines(paste("result data exported to",csv_file));
   
   
-  if (number_dogs > 1)
+  #if (number_dogs > 1)
   {
-    writeLines("creating comparison graphs");
-    
-    # export boxplot with the distances of all the dogs
-    CairoPDF(paste(base_folder,get_trans_filename("boxplot_all"), ".pdf",sep=""));
-    boxplot(results_dist_closest, names=data_location[1,], main=get_translation("dists_all_dogs_closest"), ylab=get_translation("dist_km"));
-    dev.off();
-    
-    # export boxplot with the distances of all the dogs WITHOUT outliers
-    CairoPDF(paste(base_folder,get_trans_filename("boxplot_all_no_outlier"), ".pdf",sep=""));
-    boxplot(results_dist_closest, names=data_location[1,], main=get_translation("dists_all_dogs_closest"), ylab=get_translation("dist_km"), outline=FALSE);
-    dev.off();
-    
-    
+    writeLines( paste("creating comparison graphs, exporting to:\n   ",base_folder));
+
+    setPDFFolder ( base_folder );
+   
     ncols <- 2;
     nrows <- as.integer(ceiling(number_dogs/ncols));
+    mfrow <- c(nrows, ncols);
+
     width <- ncols * 10;
     height <- nrows * 6;
     
-    
     title_y <- min(0.99, 1 -0.08 / 2^floor((number_dogs - 1) / 2));
+    title_fig <- c(0.49,0.51,title_y, 1);
+      
+    xlab_multidog <- paste("\n", get_translation("time"));
+
+    datetime_starts <- strptime(results_csv$res_t1, format=output_datetime_format);
+    datetime_ends   <- strptime(results_csv$res_t2, format=output_datetime_format);
+    datetime_labels_at <- list();
+    datetime_labels    <- list();
+    datetime_xaxis     <- list();
+    for (i in seq(1, number_dogs))
+    {
+        datetime_xaxis[[i]] <- seq.POSIXt(datetime_starts[i], datetime_ends[i], by=1);
+        datetime_labels_at[[i]] <- seq.POSIXt(datetime_starts[i], datetime_ends[i], by=1.5*3600);
+        datetime_labels[[i]] <- format(datetime_labels_at[[i]], graph_datetime_format);
+    }
+
+    writeLines(paste("dog names:", dog_names));
+
+    # export boxplot with the distances of all the dogs
+    startPDF(name=get_trans_filename("boxplot_all"));
+    boxplot(results_dist_closest, names=dog_names, main=get_translation("dists_all_dogs_closest"), ylab=get_translation("dist_km"));
+    endPDF();
+    #CairoPDF(paste(base_folder,get_trans_filename("boxplot_all"), ".pdf",sep=""));
+    #boxplot(results_dist_closest, names=data_location[1,], main=get_translation("dists_all_dogs_closest"), ylab=get_translation("dist_km"));
+    #dev.off();
+    writeLines("all1");
+    
+    # export boxplot with the distances of all the dogs WITHOUT outliers
+    startPDF(name=get_trans_filename("boxplot_all_no_outlier"));
+    boxplot(results_dist_closest, names=dog_names, main=get_translation("dists_all_dogs_closest"), ylab=get_translation("dist_km"), outline=FALSE);
+    endPDF();
+    #CairoPDF(paste(base_folder,get_trans_filename("boxplot_all_no_outlier"), ".pdf",sep=""));
+    #boxplot(results_dist_closest, names=data_location[1,], main=get_translation("dists_all_dogs_closest"), ylab=get_translation("dist_km"), outline=FALSE);
+    #dev.off();
+    writeLines("all2");
     
     # export graph with distance of all dogs to their two sheep
-    CairoPDF(paste(base_folder,get_trans_filename("dists_all_dogs_both"), ".pdf",sep=""), width=width, height=height);
-    par(mfrow=c(nrows, ncols));
+    key <- c("dists_all_dogs_both");
+    startPDF ( name=get_trans_filename(key), w=width, h=height, mfrow=mfrow );
+#    CairoPDF(paste(base_folder,get_trans_filename("dists_all_dogs_both"), ".pdf",sep=""), width=width, height=height);
+#    par(mfrow=c(nrows, ncols));
     for (i in 1:number_dogs)
     {
       data_m1 <- as.data.frame(results_dist_m1[i]);
       data_m2 <- as.data.frame(results_dist_m2[i]);
-      xlab = paste(get_translation("time"),"\n\n\n",dog_names[i],sep="");
-      plot(1:(dim(data_m1)[1]), data_m1[,1], type="l", ylab=get_translation("dist_km"), xlab=xlab, ylim=c(0,1), xaxt="n", col="blue");
-      lines(1:(dim(data_m2)[1]), data_m2[,1], type='l', col='green');
+      at_ <- datetime_labels_at[[i]];
+      ls_ <- datetime_labels[[i]];
+      x <- datetime_xaxis[[i]];
+      #x1 <- 1 : (dim(data_m1)[1]);
+      #x2 <- 1 : (dim(data_m2)[1]);
+      #xlab = paste(base_xlab_multidog,dog_names[i],sep="");
+      #plot(1:(dim(data_m1)[1]), data_m1[,1], type="l", ylab=get_translation("dist_km"), xlab=xlab, ylim=c(0,1), xaxt="n", col="blue");
+      #lines(1:(dim(data_m2)[1]), data_m2[,1], type='l', col='green');
+      extraFn <- function()
+      {
+        lines(x, data_m2[,1], type='l', col='green');
+      }
+      justPlot ( x=x, y=data_m1[,1], main_direct=dog_names[i], main_transl_key="", xlab=xlab_multidog, col="blue", extraFn=extraFn, custom_datetime_labels=ls_, custom_datetime_labels_at=at_);
     }
-    add_title_y(get_translation("dists_all_dogs_both"),"", 0, 0, c(0.49,0.51,title_y, 1));
-    dev.off();
+    add_title_y(get_translation(key),"", 0, 0, title_fig);
+    #dev.off();
+    endPDF();
+writeLines("all3");
     
     # export graph with distances of all dogs to the closest sheep
-    CairoPDF(paste(base_folder,get_trans_filename("dists_all_dogs_closest"), ".pdf",sep=""), width=width, height=height);
-    par(mfrow=c(nrows, ncols));
+    key <- c("dists_all_dogs_closest");
+    startPDF ( name=get_trans_filename(key), w=width, h=height, mfrow=mfrow );
+    #CairoPDF(paste(base_folder,get_trans_filename("dists_all_dogs_closest"), ".pdf",sep=""), width=width, height=height);
+    #par(mfrow=c(nrows, ncols));
     for (i in 1:number_dogs)
     {
+      at_ <- datetime_labels_at[[i]];
+      ls_ <- datetime_labels[[i]];
+      x <- datetime_xaxis[[i]];
       data <- as.data.frame(results_dist_closest[i]);
-      xlab = paste(get_translation("time"),"\n\n\n",dog_names[i],sep="");
-      plot(1:(dim(data)[1]), data[,1], type="l", ylab=get_translation("dist_km"), xlab=xlab, ylim=c(0,1), xaxt="n");
+      xlab = paste ( base_xlab_multidog, dog_names[i], sep="" );
+      justPlot ( x=x, y=data[,1], main_direct=dog_names[i], main_transl_key="", xlab=xlab_multidog, ylim=c(0,1), custom_datetime_labels=ls_, custom_datetime_labels_at=at_ );
+      #plot(1:(dim(data)[1]), data[,1], type="l", ylab=get_translation("dist_km"), xlab=xlab, ylim=c(0,1), xaxt="n");
     }
-    add_title_y(get_translation("dists_all_dogs_closest"),"", 0, 0, c(0.49,0.51,title_y, 1));
-    dev.off();
+    add_title_y(get_translation("dists_all_dogs_closest"),"", 0, 0, title_fig);
+    endPDF();
+    #dev.off();
+writeLines("all4");
     
     # export graph with distances of all dogs to the mean position of the sheep
-    CairoPDF(paste(base_folder,get_trans_filename("dists_all_dogs_mean"),".pdf",sep=""), width=width, height=height);
-    par(mfrow=c(nrows, ncols));
+    key <- c("dists_all_dogs_mean");
+    startPDF ( name=get_trans_filename(key), w=width, h=height, mfrow=mfrow );
+    #CairoPDF(paste(base_folder,get_trans_filename("dists_all_dogs_mean"),".pdf",sep=""), width=width, height=height);
+    #par(mfrow=c(nrows, ncols));
     for (i in 1:number_dogs)
     {
+      at_ <- datetime_labels_at[[i]];
+      ls_ <- datetime_labels[[i]];
+      x <- datetime_xaxis[[i]];
       data <- as.data.frame(results_dist_mean[i]);
-      xlab = paste(get_translation("time"),"\n\n\n",dog_names[i],sep="");
-      plot(1:(dim(data)[1]), data[,1], type="l", ylab=get_translation("dist_km"), xlab=xlab, ylim=c(0,1), xaxt="n");
+      xlab = paste(base_xlab_multidog,dog_names[i],sep="");
+      justPlot ( x=x, y=data[,1], main_direct=dog_names[i], main_transl_key="", xlab=xlab_multidog, ylim=c(0,1), custom_datetime_labels=ls_, custom_datetime_labels_at=at_ );
+      #plot(1:(dim(data)[1]), data[,1], type="l", ylab=get_translation("dist_km"), xlab=xlab, ylim=c(0,1), xaxt="n");
     }
-    add_title_y(get_translation("dists_all_dogs_mean"),"", 0, 0, c(0.49,0.51,title_y, 1));
-    dev.off();
+    add_title_y(get_translation(key),"", 0, 0, title_fig);
+    endPDF();
+    #dev.off();
+writeLines("all5");
     
     
     ## now the same with histograms
     
     
     # export graph with distances of all dogs to the closest sheep
-    CairoPDF(paste(base_folder,get_trans_filename("hist_dists_all_dogs_closest"),".pdf",sep=""), width=width, height=height);
-    par(mfrow=c(nrows, ncols));
+    key <- c("hist_dists_all_dogs_closest");
+    startPDF ( name=get_trans_filename(key), w=width, h=height, mfrow=mfrow );
+    #CairoPDF(paste(base_folder,get_trans_filename("hist_dists_all_dogs_closest"),".pdf",sep=""), width=width, height=height);
+    #par(mfrow=c(nrows, ncols));
     for (i in 1:number_dogs)
     {
       data <- as.data.frame(results_dist_closest[i]);
-      med <-median(data[,1]);
-      hist(data[,1], breaks=hist_default_breaks, ylim=c(0,12000), xlim=hist_default_xlim, xlab=dog_names[i], ylab=get_translation("freq"), main="", sub=get_translation("red_median",c(signif(med,digits=4))));
-      abline(v=med, col="red", lwd=2); # add a red line for the median
+      #xlab=dog_names[i];
+      justHist ( data[,1], main_transl_key="", main_direct=dog_names[i], ylim=c(0,12000) );
+      #med <-median(data[,1]);
+      #hist(data[,1], breaks=hist_default_breaks, ylim=c(0,12000), xlim=hist_default_xlim, xlab=dog_names[i], ylab=get_translation("freq"), main="", sub=get_translation("red_median",c(signif(med,digits=4))));
+      #abline(v=med, col="red", lwd=2); # add a red line for the median
     }
-    add_title_y(get_translation("hist_dists_all_dogs_closest"),"", 0, 0, c(0.49,0.51,title_y, 1));
-    dev.off();
+    add_title_y(get_translation(key),"", 0, 0, title_fig);
+    #dev.off();
+    endPDF();
+writeLines("all6");
     
     # export graph with distances of all dogs to the mean position of the sheep
-    CairoPDF(paste(base_folder,get_trans_filename("hist_dists_all_dogs_mean"),".pdf",sep=""), width=width, height=height);
-    par(mfrow=c(nrows, ncols));
+    key <- c("hist_dists_all_dogs_mean");
+    startPDF (name=get_trans_filename(key), w=width, h=height, mfrow=mfrow);
+    #CairoPDF(paste(base_folder,get_trans_filename("hist_dists_all_dogs_mean"),".pdf",sep=""), width=width, height=height);
+    #par(mfrow=c(nrows, ncols));
     for (i in 1:number_dogs)
     {
       data <- as.data.frame(results_dist_mean[i]);
-      med <-median(data[,1]);
-      hist(data[,1], breaks=hist_default_breaks, ylim=c(0,12000), xlim=hist_default_xlim, xlab=dog_names[i], ylab=get_translation("freq"), main="", sub=get_translation("red_median",c(signif(med,digits=4))));
-      abline(v=med, col="red", lwd=2); # add a red line for the median
+      xlab=dog_names[i];
+      justHist (data[,1], main_transl_key="", main_direct=dog_names[i], ylim=c(0,12000));
+      #med <-median(data[,1]);
+      #hist(data[,1], breaks=HIST_DEFAULT_BREAKS, ylim=c(0,12000), xlim=hist_default_xlim, xlab=dog_names[i], ylab=get_translation("freq"), main="", sub=get_translation("red_median",c(signif(med,digits=4))));
+      #abline(v=med, col="red", lwd=2); # add a red line for the median
     }
-    add_title_y(get_translation("hist_dists_all_dogs_mean"),"", 0, 0, c(0.49,0.51,title_y, 1));
-    dev.off();
+    add_title_y(get_translation(key),"", 0, 0, title_fig);
+   # dev.off();
+    endPDF();
+writeLines("all7");
     
     
     
@@ -906,7 +990,7 @@ handle_dogs <- function (base_folder, data_location)
     bs <- seq(-1,1,1/HISTOGRAM_CLASSES);
     for (i in 1:number_dogs)
     {
-      if (length(Filter(f_no_nan, results_coord_pos_align_m1[i])) != 0)
+      if (len_no_nan (results_coord_pos_align_m1[i]) != 0)
       {
         data_pos_m1 <- as.data.frame(results_coord_pos_align_m1[i]);
         data_neg_m1 <- as.data.frame(results_coord_neg_align_m1[i]);
@@ -919,7 +1003,7 @@ handle_dogs <- function (base_folder, data_location)
         if (m_n_m1 > max_neg_freq) max_neg_freq <- m_n_m1;
       }
       
-      if (length(Filter(f_no_nan, results_coord_pos_align_m2[i])) != 0)
+      if (len_no_nan (results_coord_pos_align_m2[i]) != 0)
       {
         data_pos_m2 <- as.data.frame(results_coord_pos_align_m2[i]);
         data_neg_m2 <- as.data.frame(results_coord_neg_align_m2[i]);
@@ -933,12 +1017,14 @@ handle_dogs <- function (base_folder, data_location)
       }
     }
     max_freq <- max(max_pos_freq, max_neg_freq);
-    CairoPDF(paste(base_folder,get_trans_filename("graph_hist_all_dogs_coord_both_sheep"),".pdf",sep=""), width=width, height=height);
-    par(mfrow=c(nrows, ncols));
-    red <- rgb(1,0,0,0.5);
-    yellow <- rgb(1,1,0,0.5);
-    blue <- rgb(0,0,1,0.5);
-    green <- rgb(0,1,0,0.5);
+    key <- c("graph_hist_all_dogs_coord_both_sheep");
+    startPDF (name=get_trans_filename(key), w=width, h=height, mfrow=mfrow);
+    #CairoPDF(paste(base_folder,get_trans_filename("graph_hist_all_dogs_coord_both_sheep"),".pdf",sep=""), width=width, height=height);
+    #par(mfrow=c(nrows, ncols));
+    #red <- rgb(1,0,0,0.5);
+    #yellow <- rgb(1,1,0,0.5);
+    #blue <- rgb(0,0,1,0.5);
+    #green <- rgb(0,1,0,0.5);
     text_x_left <- -0.5;
     text_x_right <- 0.5;
     text_y_top <- 1.03 * max_freq;
@@ -947,7 +1033,7 @@ handle_dogs <- function (base_folder, data_location)
     {
       draw1 <- F;
       draw2 <- F;
-      if (length(Filter(f_no_nan, results_coord_pos_align_m1[i])) != 0)
+      if (len_no_nan (results_coord_pos_align_m1[i]) != 0)
       {
         data_pos_m1 <- as.data.frame(results_coord_pos_align_m1[i]);
         data_neg_m1 <- as.data.frame(results_coord_neg_align_m1[i]);
@@ -959,11 +1045,11 @@ handle_dogs <- function (base_folder, data_location)
         hist_pos_m1$counts <- hist_pos_m1$counts / sum;
         hist_neg_m1$counts <- -hist_neg_m1$counts / sum;
         lims <- c(-max_freq,max_freq);
-        plot(hist_pos_m1, ylim=lims, col=red, main="", xlab=dog_names[i], ylab=get_translation("rel_freq"));
-        lines(hist_neg_m1, col=blue);
+        plot(hist_pos_m1, ylim=lims, col="red", main="", xlab=dog_names[i], ylab=get_translation("rel_freq"));
+        lines(hist_neg_m1, col="blue");
         draw1 <- T;
       }
-      if (length(Filter(f_no_nan, results_coord_pos_align_m2[i])) != 0)
+      if (len_no_nan (results_coord_pos_align_m2[i]) != 0)
       {
         data_pos_m2 <- as.data.frame(results_coord_pos_align_m2[i]);
         data_neg_m2 <- as.data.frame(results_coord_neg_align_m2[i]);
@@ -975,13 +1061,13 @@ handle_dogs <- function (base_folder, data_location)
         hist_pos_m2$counts <- hist_pos_m2$counts / sum;
         hist_neg_m2$counts <- -hist_neg_m2$counts / sum;
         if (draw1)
-          lines(hist_pos_m2, col=yellow)
+          lines(hist_pos_m2, col="yellow")
         else
-          plot(hist_pos_m2, col=yellow);
-        lines(hist_neg_m2, col=green);
+          plot(hist_pos_m2, col="yellow");
+        lines(hist_neg_m2, col="green");
         draw2 <- T;
       }
-      if (draw1 | draw2)
+      if (draw1 || draw2)
       {
         hist_posneg_labels_top <- c(get_translation("graph_align_pos_left_label"), get_translation("graph_align_pos_right_label"));
         hist_posneg_labels_bot <- c(get_translation("graph_align_neg_left_label"), get_translation("graph_align_neg_right_label"));
@@ -993,11 +1079,12 @@ handle_dogs <- function (base_folder, data_location)
       }
       abline(v=0);
     }
-    add_title_y(get_translation("graph_hist_all_dogs_coord_both_sheep"), "", 0, 0, c(0.49,0.51,title_y, 1));
+    add_title_y(get_translation("graph_hist_all_dogs_coord_both_sheep"), "", 0, 0, title_fig);
     subtitle_y <- title_y - 0.12 / 2^floor((number_dogs - 1) / 2);
     par(fig=c(0.49,0.51,subtitle_y, 1));
     text(x=c(0),y=c(0), labels=c(get_translation("hist_colors_label")), cex=1.0);
     dev.off();
+writeLines("all9");
     
   }
   
