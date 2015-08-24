@@ -19,7 +19,7 @@ DATA_SEP = ";"; # symbol between values in input files
 
 RADIUS_EARTH <- 6371L; # km
 
-HISTOGRAM_CLASSES <- 100;
+HISTOGRAM_CLASSES <- 200;
 
 # the script does not take into account the moments where the dog is far from the sheep,
 # for alignment, in_front and these things.
@@ -206,7 +206,7 @@ startStuff <- function(button, user.data)
   distFilter <- as.numeric(dF);
   if (is.na(distFilter))
   {
-    errMsg <- paster(errMsg, "Distance de filtre invalide: \""
+    errMsg <- paste(errMsg, "Distance de filtre invalide: \""
                      ,dF,"\", valeur utilisee: ", filter_dist,"\n", sep="");
     filterDistEntry$setText(as.character(filter_dist));
   } else {
@@ -216,6 +216,7 @@ startStuff <- function(button, user.data)
   if (errMsg != "")
   {
     errDialog(errMsg);
+    writeLines(errMsg);
     return();
   }
   
@@ -230,7 +231,6 @@ startStuff <- function(button, user.data)
   {
     dogsText <- dogListLabel$getText();
     dogListLabel$setText("Calculs en cours...");
-    #tryCatch (
     withCallingHandlers(
       {
         LANG <<- combo$active + 1;
@@ -395,5 +395,4 @@ GUI_dog_data <<- c("Helix_testplot",
       dogL <- paste(dogL, d, sep = "  ");
     dogListLabel$setText(dogL);
   labelBaseFolder$setText("/media/data/toSave/paul/AGRIDEA/Base_de_donnée_GPS");
-
 
