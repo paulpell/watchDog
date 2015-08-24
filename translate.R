@@ -70,8 +70,6 @@ LANGUAGES$graph_dist_both_sheep <- c("Distances ^1 aux deux moutons",
 
 LANGUAGES$graph_hist_coord_both_sheep <- c("Histogramme de coordination ^1 aux deux moutons",
                                      "Koordinationshistogramm ^1 zu beide Schafen");
-LANGUAGES$graph_hist_coord_both_sheep_filename <- c("Histogramme_de_coordination_^1_aux_deux_moutons",
-                                           "Koordinationshistogramm_^1_zu_beide_Schafen");
 
 LANGUAGES$graph_align_pos_left_label <- c("alignement > 0, chien suit mouton",
                                           "Ausrichtung > 0, Hund folgt Schaf");
