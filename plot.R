@@ -12,18 +12,15 @@ DEFAULT_PLOT_X_LAB <- get_translation("date");
 DEFAULT_PLOT_Y_LAB <- get_translation("dist_km");
 
 # histogram default values
-HIST_CLASSES <- 100; # display 100 different classes in histograms
 
 HIST_DEFAULT_MAX_XLIM <- 0.1; # display only up to 100 meters
-
-HIST_DEFAULT_CLASS_WIDTH <- HIST_DEFAULT_MAX_XLIM / HIST_CLASSES;
 
 HIST_DEFAULT_XLIMS <- c(0, HIST_DEFAULT_MAX_XLIM);
 
 
 #hist_big_max is used so that all values are included in the breaks
 hist_big_max <- 2; # 2 kms should be enough to include all distances!
-HIST_DEFAULT_BREAKS <- seq ( 0, hist_big_max, HIST_DEFAULT_CLASS_WIDTH );
+HIST_DEFAULT_BREAKS <- seq ( 0, hist_big_max, length.out=(1+HISTOGRAM_CLASSES) );
 
 
 DEFAULT_HIST_Y_LAB <- get_translation("freq");
@@ -35,13 +32,6 @@ DEFAULT_HIST_X_LAB <- get_translation("dist_km");
   # explanations for the graphs:
   # 5 functions are used: jpeg(), par(), plot(), axis() and dev.off()
   #
-  
-  # jpeg() function
-  # ==============
-  # opens an image file in the png format to draw in it
-  # the "cairo" type looks like the best, so it is used here =)
-  # the "bg" argument (here "white) specifies the color of the background of the image.
-  # 
   
   # par() function
   # ===============
@@ -94,15 +84,6 @@ checkInPDF <- function()
 {
   if ( ! internal_inPDF__ )
     stop("You must first call startPDF!");
-}
-checkUseDataLabels <- function(useDateLabels)
-{
-  if (useDateLabels &&   
-       !exists("axis_dates") )
-          stop("axis dates are not defined!!");
-  if (useDateLabels &&   
-       !exists("axis_labels") )
-          stop("axis labels are not defined!!");
 }
 
 setPDFFolder <- function ( folder )
@@ -158,7 +139,7 @@ endPDF <- function ()
 }
 
 # store the title, oma is c(bottom, left, top, right) in number of lines
-preparePDFTitle <- function(title, oma=c(0,0,if (is.null(subtitle)) 2 else 1,0), subtitle=NULL)
+preparePDFTitle <- function(title, oma=c(0,0,if (is.null(subtitle)) 2 else 3,0), subtitle=NULL)
 {
     par(oma=oma);
     internal_pdfTitle__ <<- title;
@@ -175,22 +156,26 @@ makePlot <- function
     main_transl_key=name_transl_key,
     main_transl_args=name_transl_args,
     pdf_width=DEFAULT_PDF_WIDTH,
+    pdf_height=DEFAULT_PDF_HEIGHT,
     xlab=DEFAULT_PLOT_X_LAB,
     ylab=DEFAULT_PLOT_Y_LAB,
-    useDateLabels=TRUE,
     type="l",
     ylim=NULL,
     col="black",
-    extraFn=NULL # we will call this function if not null
+    extraFn=NULL, # we will call this function if not null
+    custom_datetime_labels=NULL,
+    custom_datetime_labels_at=NULL
   )
 {
   filename <- get_trans_filename(name_transl_key, name_transl_args);
-  startPDF ( filename, pdf_width );
+  startPDF ( filename, w=pdf_width, h=pdf_height );
 
   justPlot( x=x, y=y, main_transl_key=main_transl_key,
-            main_transl_args=main_transl_args, pdf_width=pdf_width,
-            xlab=xlab, ylab=ylab, useDateLabels=useDateLabels,
-            type=type, ylim=ylim, col=col, extraFn=extraFn );
+            main_transl_args=main_transl_args,
+            xlab=xlab, ylab=ylab,
+            type=type, ylim=ylim, col=col, extraFn=extraFn,
+            custom_datetime_labels=custom_datetime_labels,
+            custom_datetime_labels_at=custom_datetime_labels_at);
 
   endPDF();
 
@@ -208,7 +193,6 @@ justPlot <- function
     sub=NULL,
     xlab=DEFAULT_PLOT_X_LAB,
     ylab=DEFAULT_PLOT_Y_LAB,
-    useDateLabels=TRUE,
     type="l",
     ylim=NULL,
     col="black",
@@ -222,33 +206,26 @@ justPlot <- function
 
 #special only in justPlot, for the pages with several dogs
   useCustomDateLabels <- FALSE;
-  if ( is.null(custom_datetime_labels) & is.null(custom_datetime_labels_at))
-    checkUseDataLabels(useDateLabels)
-  else
+  if ( ! is.null(custom_datetime_labels) | ! is.null(custom_datetime_labels_at))
   {
     if ( is.null(custom_datetime_labels) )
       stop("cannot have null date-time labels if date-time at is specified");
     if ( is.null(custom_datetime_labels_at) )
       stop("cannot have null date-time at if date-time labels are specified");
-    useDateLabels = TRUE; # make sure we have it on =)
     useCustomDateLabels <- TRUE;
   }
   
-  xaxt <- if (useDateLabels) "n" else xaxt; # suppress axis if we use our own labels
+  xaxt <- if (useCustomDateLabels) "n" else xaxt; # suppress axis if we use our own labels
 
   main <- if ( ! is.null(main_direct) ) main_direct
           else if (main_transl_key=="") NULL
           else get_translation(main_transl_key, main_transl_args);
   plot ( x, y, main=main, sub=sub, xlab=xlab, ylab=ylab, xaxt=xaxt, type=type, ylim=ylim, col=col );
 
-  if (useDateLabels)
-  {
-    at_ = if (useCustomDateLabels) custom_datetime_labels_at else axis_labels;
-    ls_ = if (useCustomDateLabels) custom_datetime_labels else axis_dates;
-    axis(1, at=at_, labels=ls_, padj=0.5);
-  }
+  if (useCustomDateLabels)
+    axis(1, at=custom_datetime_labels_at, labels=custom_datetime_labels, padj=0.5);
   
-  if (! is.null (extraFn) )
+  if ( ! is.null (extraFn) )
     extraFn();
 
   echo <- paste("Graph ",main,"created");
@@ -257,6 +234,7 @@ justPlot <- function
 # this is used to draw multiple plots
 quickMultiPlot <- function(
     ydata, # we use as.data.frame(ydata[i])[,1] .......
+    ydata2=NULL, # same usage
     xdata, # we use xdata[[i]]
     nplots,
     transl_key,
@@ -264,11 +242,11 @@ quickMultiPlot <- function(
     xlab_at,
     xlabels,
     mains,
-    xlab=get_translation("time"),
-    extraFn=NULL,
+    xlab=DEFAULT_PLOT_X_LAB,
     subtitle=NULL,
     ncols=2,
-    col="black")
+    col="black",
+    col2="green")
 {
   mfrow <- c(as.integer(ceiling((nplots)/ncols)), ncols);
   startPDF(name=get_trans_filename(transl_key, transl_args), mfrow=mfrow);
@@ -278,9 +256,13 @@ quickMultiPlot <- function(
   {
     at_ <- xlab_at[[i]];
     ls_ <- xlabels[[i]];
-    #x <- datetime_xaxis[[i]];
     y <- as.data.frame(ydata[i])[,1];
-    justPlot ( x=xdata[[i]], y=y, main_direct=dog_names[i], main_transl_key="", xlab=xlab, col=col, extraFn=extraFn, custom_datetime_labels=ls_, custom_datetime_labels_at=at_);
+    justPlot ( x=xdata[[i]], y=y, main_direct=mains[i], main_transl_key="", xlab=xlab, col=col, extraFn=NULL, custom_datetime_labels=ls_, custom_datetime_labels_at=at_);
+    if ( ! is.null(ydata2) )
+    {
+      y <- as.data.frame(ydata2[i])[,1];
+      lines (xdata[[i]], y, col=col2, xaxt="n", type="l");
+    }
   }
   endPDF();
 }
@@ -344,7 +326,7 @@ justHist <- function
   else
   {
     xlim <- 8*med;
-    breaks <- seq(0, xlim, xlim / HIST_CLASSES);
+    breaks <- seq(0, xlim, xlim / HISTOGRAM_CLASSES);
     x <- Filter( function(i)i<=xlim, x);
   }
 
