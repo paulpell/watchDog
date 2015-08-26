@@ -19,13 +19,13 @@ DATA_SEP = ";"; # symbol between values in input files
 
 RADIUS_EARTH <- 6371L; # km
 
-HISTOGRAM_CLASSES <- 200;
+HISTOGRAM_CLASSES <<- 200;
 
 # the script does not take into account the moments where the dog is far from the sheep,
 # for alignment, in_front and these things.
-# This value (filter_dist) is the max distance. 10km will take everything into account, probably
-#filter_dist <- 0.03; # 30 meters
-filter_dist <- 0.05; # 0.050 kilometers, takes everything into account!
+# This value (FILTER_DIST) is the max distance. 10km will take everything into account, probably
+#FILTER_DIST <- 0.03; # 30 meters
+FILTER_DIST <<- 0.05; # 0.050 kilometers, takes everything into account!
 
 # this seems to be tricky: you NEED!! to SOURCE the file, not run it line by line
 test <- sys.frame(1)$fileName;
@@ -33,7 +33,7 @@ if (is.null(test))
   test <- sys.frame(1)$ofile;
 
 # include computations file
-analysispath <- paste(dirname(test),"analysis4.R", sep = .Platform$file.sep);
+analysispath <- paste(dirname(test),"analysis.R", sep = .Platform$file.sep);
 source(analysispath);
 
 #include translation file
@@ -187,54 +187,66 @@ remove_dogs <- function(button, user.data)
   dogListLabel$setText("Aucun chien choisi");
   fastFolder <<- base_folder;
 }
-# start the analysis, using the entered data
-startStuff <- function(button, user.data)
+# obtain the number of histogram classes in the user interface
+get_histClasses <- function()
 {
-  errMsg <- "";
-  hC <- histClassesEntry$getText()
+    hC <- histClassesEntry$getText()
   histClasses <- as.numeric(hC);
   if (is.na(histClasses))
   {
     errMsg <- paste("Nombre classes histogrammes invalid: \""
                     ,hC,"\", valeur utilisee: ", HISTOGRAM_CLASSES,"\n", sep="");
     histClassesEntry$setText(as.character(HISTOGRAM_CLASSES));
+    stop (errMsg);
   } else {
-    HISTOGRAM_CLASSES <<- histClasses;
+    return (histClasses);
   }
-  
+}
+# obtain the value of the filter distance in the user interface
+get_filterDist <- function()
+{    
   dF <- filterDistEntry$getText();
   distFilter <- as.numeric(dF);
   if (is.na(distFilter))
   {
     errMsg <- paste(errMsg, "Distance de filtre invalide: \""
-                     ,dF,"\", valeur utilisee: ", filter_dist,"\n", sep="");
-    filterDistEntry$setText(as.character(filter_dist));
+                     ,dF,"\", valeur utilisee: ", FILTER_DIST,"\n", sep="");
+    filterDistEntry$setText(as.character(FILTER_DIST));
+    stop (errMsg);
   } else {
-    filter_dist <<- distFilter;
+    return (distFilter)
   }
-  
-  if (errMsg != "")
-  {
-    errDialog(errMsg);
-    writeLines(errMsg);
-    return();
-  }
-  
+}
+# find the output folder, and validate it
+get_baseFolder <- function()
+{
   bf <- paste(labelBaseFolder$getText(), .Platform$file.sep, sep="");
+  if (bf == "")
+    stop ("Pas de dossier de sortie choisi!")
+  else if (!file_test("-d", bf))
+    stop ("Le dossier de sortie n'existe pas!");
+  return (bf);
+}
+# start the analysis, using the entered data
+startStuff <- function(button, user.data)
+{
+  
   if (length(GUI_dog_data) == 0)
     errDialog("Aucun chien choisi!")
-  else if (bf == "")
-    errDialog("Pas de dossier de sortie choisi!")
-  else if (!file_test("-d", bf))
-    errDialog("Le dossier de sortie n'existe pas!")
   else
   {
     dogsText <- dogListLabel$getText();
     dogListLabel$setText("Calculs en cours...");
     withCallingHandlers(
       {
+        HISTOGRAM_CLASSES <<- get_histClasses();
+        FILTER_DIST <<- get_filterDist();
         LANG <<- combo$active + 1;
-        handle_dogs(bf, GUI_dog_data);
+        base_folder <- get_baseFolder();
+        export_1dog_graph <- checkBox_exp_1dog_graphs$active;
+        export_alldogs_graph <- checkBox_exp_comp_graphs$active;
+
+        handle_dogs(base_folder, export_1dog_graph, export_alldogs_graph, GUI_dog_data);
       },
       error = function(e)
       {
@@ -329,18 +341,34 @@ create_GUI <- function()
   
   
   vbox$packStart(gtkHSeparatorNew(), FALSE, FALSE, 0);
-  
+
+  # add the other options
+  create_general_options (vbox);
+}
+
+create_general_options <- function (box)
+{  
   hboxBF <- gtkHBox(F, 10);
-  vbox$packStart(hboxBF, F, F, 3);
+  box$packStart(hboxBF, F, F, 3);
   labelBF <- gtkLabel("Dossier de sortie:");
   hboxBF$packStart(labelBF, F, F, 3);
   hboxBF$packStart(labelBaseFolder, F, F, 3);
   baseFolderButton <- gtkButton("Choisir...");
   hboxBF$packEnd(baseFolderButton, F, F, 3);
   gSignalConnect(baseFolderButton, "pressed", choose_base_folder);
+
+  hboxExpGraphs <- gtkHBox ( T, 10 );
+  box$packStart(hboxExpGraphs, F, F, 3);
+  checkBox_exp_1dog_graphs <<- gtkCheckButton(label="Exporter graphes pour chaque chien", show=T);
+  checkBox_exp_1dog_graphs$active <- TRUE;
+  hboxExpGraphs$packStart(checkBox_exp_1dog_graphs, F, F, 3);
+  checkBox_exp_comp_graphs <<- gtkCheckButton(label="Exporter graphes de comparaison", show=T);
+  checkBox_exp_comp_graphs$active <- TRUE;
+  hboxExpGraphs$packEnd(checkBox_exp_comp_graphs, F, F, 3);
+
   
   hboxLanguage <- gtkHBox(F, 10);
-  vbox$packStart(hboxLanguage, F, F, 3);
+  box$packStart(hboxLanguage, F, F, 3);
   labelLang <- gtkLabel("Langue:");
   hboxLanguage$packStart(labelLang, T, F, 3);
   combo$appendText("FR");
@@ -349,27 +377,28 @@ create_GUI <- function()
   hboxLanguage$packStart(combo, T, F, 3);
   
   hboxSettings <- gtkHBox(F, 10);
-  vbox$packStart(hboxSettings, F, F, 3);
+  box$packStart(hboxSettings, F, F, 3);
   labelHist <- gtkLabel("Nombre classes histogrammes:");
   hboxSettings$packStart(labelHist, F, F, 3);
   hboxSettings$packEnd(histClassesEntry, F, F, 3);
   histClassesEntry$setText(as.character(HISTOGRAM_CLASSES));
   
   hboxSettings2 <- gtkHBox(F, 10);
-  vbox$packStart(hboxSettings2, F, F, 3);
+  box$packStart(hboxSettings2, F, F, 3);
   labelFilter <- gtkLabel("Distance filtre:");
   hboxSettings2$packStart(labelFilter, F, F, 3);
   hboxSettings2$packEnd(filterDistEntry, F, F, 3);
-  filterDistEntry$setText(as.character(filter_dist));
+  filterDistEntry$setText(as.character(FILTER_DIST));
   
   hboxButtons2 <- gtkHBox(F, 10);
-  vbox$packStart(hboxButtons2, F, F, 3);
+  box$packStart(hboxButtons2, F, F, 3);
   
   buttonStart <- gtkButton("Analyser");
   icon <- gtkImageNewFromIconName("gtk-apply", GtkIconSize["button"]);
   buttonStart$setImage(icon);
   hboxButtons2$packEnd(buttonStart, T, F, 3);
   gSignalConnect(buttonStart, "pressed", startStuff);
+
 }
 
 
@@ -388,7 +417,22 @@ GUI_dog_data <<- c("Helix_testplot",
                     "/media/data/toSave/paul/AGRIDEA/Base_de_donnée_GPS/Pfister_2014_Tirex_Agnella_Helix_Soldanella/Tirex/JHP_mouton2_Tirex_10_11_4_2014.txt",
                     "/media/data/toSave/paul/AGRIDEA/Base_de_donnée_GPS/Pfister_2014_Tirex_Agnella_Helix_Soldanella/Tirex/JHP_mouton1_Tirex_10_11_4_2014.txt",
                     0, 
+                    0,
+                    "Helix_testplot",
+                   "/media/data/toSave/paul/AGRIDEA/Base_de_donnée_GPS/Pfister_2014_Tirex_Agnella_Helix_Soldanella/Helix/",
+                   "/media/data/toSave/paul/AGRIDEA/Base_de_donnée_GPS/Pfister_2014_Tirex_Agnella_Helix_Soldanella/Helix/JHP_Helix_22_23_5_2014.txt",
+                   "/media/data/toSave/paul/AGRIDEA/Base_de_donnée_GPS/Pfister_2014_Tirex_Agnella_Helix_Soldanella/Helix/JHP_mouton1_Helix_22_23_5_2014.txt",
+                   "/media/data/toSave/paul/AGRIDEA/Base_de_donnée_GPS/Pfister_2014_Tirex_Agnella_Helix_Soldanella/Helix/JHP_mouton2_Helix_22_23_5_2014.txt",
+                   0,0,
+                   
+                   "Tirex_testplot" ,
+                   "/media/data/toSave/paul/AGRIDEA/Base_de_donnée_GPS/Pfister_2014_Tirex_Agnella_Helix_Soldanella/Tirex/", 
+                    "/media/data/toSave/paul/AGRIDEA/Base_de_donnée_GPS/Pfister_2014_Tirex_Agnella_Helix_Soldanella/Tirex/JHP_Tirex_10_11_4_2014.txt", 
+                    "/media/data/toSave/paul/AGRIDEA/Base_de_donnée_GPS/Pfister_2014_Tirex_Agnella_Helix_Soldanella/Tirex/JHP_mouton2_Tirex_10_11_4_2014.txt",
+                    "/media/data/toSave/paul/AGRIDEA/Base_de_donnée_GPS/Pfister_2014_Tirex_Agnella_Helix_Soldanella/Tirex/JHP_mouton1_Tirex_10_11_4_2014.txt",
+                    0, 
                     0
+
                    );
     dogL <- "Chiens choisis: ";
     for (d in GUI_dog_data[seq(1,length(GUI_dog_data),7)])

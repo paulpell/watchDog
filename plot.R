@@ -111,6 +111,12 @@ startPDF <- function
 
     filepath <- paste(internal_pdfFolder__, internal_pdfName__, ".pdf", sep="");
 
+    if ( ! is.null (mfrow) )
+    {
+      h <- h * mfrow[1];
+      w <- w * mfrow[2];
+    }
+
     writeLines(paste("Starting PDF: ", filepath));
     CairoPDF ( filepath, width=w, height=h );
     internal_inPDF__ <<- TRUE;
