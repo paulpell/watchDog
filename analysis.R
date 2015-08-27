@@ -501,6 +501,18 @@ handle_dog <- function(export_dog_graphs, data_location)
   return (results);
 }
 
+start_analysis <- function (
+    num_test_animals,
+    num_sheep,
+    output_folder,
+    export_1animal_graph,
+    export_allanimals_graph,
+    data
+)
+{
+    writeLines ("Start analysis");
+}
+
 handle_dogs <- function (
         base_folder, 
         export_1dog_graphs,
