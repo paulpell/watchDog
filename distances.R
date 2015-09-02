@@ -8,12 +8,16 @@
 #
 
 
+
 # settings for the language
 LANGS <- c(FR=1,DE=2);
 LANG <<- LANGS[["FR"]];
 
 #change the base working folder here
-base_folder <- "%USERPROFILE%\\Desktop";
+base_folder <-
+  if ( .Platform$OS.type == "unix" ) "/tmp" else {
+      if ( .Platform$OS.type == "windowS" ) Sys.getenv("TEMP");
+  }
 
 DATA_SEP = ";"; # symbol between values in input files
 
@@ -29,6 +33,36 @@ fixedPoint_east <- 0;
 # This value (FILTER_DIST) is the max distance. 10km will take everything into account, probably
 #FILTER_DIST <- 0.03; # 30 meters
 FILTER_DIST <<- 0.05; # 0.050 kilometers, takes everything into account!
+
+#### this object is very important: we use it to collect the data
+#### about the animals (animal name, filepath)
+#### We define it before sourcing analysis.R
+AnimalsDataSet <-
+  setClass ("AnimalsDataSet",
+            slots=c(
+                numEntries="numeric", # number of entries
+                numSheep="numeric",
+                numAnimals="numeric",
+                outputFolder="list", # list of single names
+                sheepNames="list", # list of vectors
+                sheepFiles="list", # list of vectors
+                animalNames="list", # list of vectors
+                animalFiles="list" # list of vectors
+            ));
+
+extractAnimalData <- function (x, i)
+{
+  AnimalsDataSet(
+    numEntries=length(i),
+    numSheep=x@numSheep,
+    numAnimals=x@numAnimals,
+    outputFolder=x@outputFolder[i],
+    sheepNames=x@sheepNames[i],
+    sheepFiles=x@sheepFiles[i],
+    animalNames=x@animalNames[i],
+    animalFiles=x@animalFiles[i]);
+}
+
 
 # this seems to be tricky: you NEED!! to SOURCE the file, not run it line by line
 test <- sys.frame(1)$fileName;
@@ -55,9 +89,62 @@ library("RGtk2");
 
 MAX_ANIMALS <- 5;
 
-#### this object is very important: we use it to collect the data
-#### about the animals (animal name, filepath)
-animals_data_set <- array();
+# temp debug data
+temp_dog_data <- list (
+    list("H","T"),
+    list(
+      c("Hm1","Hm2"),
+      c("Tm1","Tm2")
+    ),
+    list("/media/data/toSave/paul/AGRIDEA/Base_de_donnée_GPS/Pfister_2014_Tirex_Agnella_Helix_Soldanella/Helix/",
+         "/media/data/toSave/paul/AGRIDEA/Base_de_donnée_GPS/Pfister_2014_Tirex_Agnella_Helix_Soldanella/Tirex/"
+    ),
+    list("/media/data/toSave/paul/AGRIDEA/Base_de_donnée_GPS/Pfister_2014_Tirex_Agnella_Helix_Soldanella/Helix/JHP_Helix_22_23_5_2014.txt",
+         "/media/data/toSave/paul/AGRIDEA/Base_de_donnée_GPS/Pfister_2014_Tirex_Agnella_Helix_Soldanella/Tirex/JHP_Tirex_10_11_4_2014.txt" 
+    ),
+    list(
+      c("/media/data/toSave/paul/AGRIDEA/Base_de_donnée_GPS/Pfister_2014_Tirex_Agnella_Helix_Soldanella/Helix/JHP_mouton1_Helix_22_23_5_2014.txt",
+        "/media/data/toSave/paul/AGRIDEA/Base_de_donnée_GPS/Pfister_2014_Tirex_Agnella_Helix_Soldanella/Helix/JHP_mouton2_Helix_22_23_5_2014.txt"),
+      c(
+        "/media/data/toSave/paul/AGRIDEA/Base_de_donnée_GPS/Pfister_2014_Tirex_Agnella_Helix_Soldanella/Tirex/JHP_mouton1_Tirex_10_11_4_2014.txt",
+        "/media/data/toSave/paul/AGRIDEA/Base_de_donnée_GPS/Pfister_2014_Tirex_Agnella_Helix_Soldanella/Tirex/JHP_mouton2_Tirex_10_11_4_2014.txt")
+    )
+);
+animals_data_set <- AnimalsDataSet(
+        numEntries=2,
+        numAnimals=1,
+        numSheep=2,
+        animalNames=temp_dog_data[[1]],
+        sheepNames=temp_dog_data[[2]],
+        outputFolder=temp_dog_data[[3]],
+        animalFiles=temp_dog_data[[4]],
+        sheepFiles=temp_dog_data[[5]]
+        );
+
+                  # 0,0,
+                  # 
+                  #  0, 
+                  #  0 ); #,
+#                    "Helix_testplot",
+#                   "/media/data/toSave/paul/AGRIDEA/Base_de_donnée_GPS/Pfister_2014_Tirex_Agnella_Helix_Soldanella/Helix/",
+#                   "/media/data/toSave/paul/AGRIDEA/Base_de_donnée_GPS/Pfister_2014_Tirex_Agnella_Helix_Soldanella/Helix/JHP_Helix_22_23_5_2014.txt",
+#                   "/media/data/toSave/paul/AGRIDEA/Base_de_donnée_GPS/Pfister_2014_Tirex_Agnella_Helix_Soldanella/Helix/JHP_mouton1_Helix_22_23_5_2014.txt",
+#                   "/media/data/toSave/paul/AGRIDEA/Base_de_donnée_GPS/Pfister_2014_Tirex_Agnella_Helix_Soldanella/Helix/JHP_mouton2_Helix_22_23_5_2014.txt",
+#                   0,0,
+#                   
+#                   "Tirex_testplot" ,
+#                   "/media/data/toSave/paul/AGRIDEA/Base_de_donnée_GPS/Pfister_2014_Tirex_Agnella_Helix_Soldanella/Tirex/", 
+#                    "/media/data/toSave/paul/AGRIDEA/Base_de_donnée_GPS/Pfister_2014_Tirex_Agnella_Helix_Soldanella/Tirex/JHP_Tirex_10_11_4_2014.txt", 
+#                    "/media/data/toSave/paul/AGRIDEA/Base_de_donnée_GPS/Pfister_2014_Tirex_Agnella_Helix_Soldanella/Tirex/JHP_mouton2_Tirex_10_11_4_2014.txt",
+#                    "/media/data/toSave/paul/AGRIDEA/Base_de_donnée_GPS/Pfister_2014_Tirex_Agnella_Helix_Soldanella/Tirex/JHP_mouton1_Tirex_10_11_4_2014.txt",
+#                    0, 
+#                    0
+#
+#                   );
+
+
+# we update the data in this instance
+#animals_data_set <- AnimalsDataSet(numEntries=0);
 
 
 # when the user chooses a first file from a folder, we then propose that folder
@@ -88,10 +175,12 @@ window <- gtkWindow();
 ##
 # text entry for the number of classes in the histograms
 histClassesEntry <- gtkEntry();
+histClassesEntry$setText(as.character(HISTOGRAM_CLASSES));
 # text entry for the filter distance
 filterDistEntry <- gtkEntry();
+filterDistEntry$setText(as.character(FILTER_DIST));
 # label for the folder where the comparison CSV file and graphs are output
-labelOutputFolder <- gtkLabel("??");
+labelOutputFolder <- gtkLabel(base_folder);
 # two check boxes for the graph export options
 checkBox_exp_1animal_graphs <- gtkCheckButton(label="Exporter graphes pour chaque chien", show=T);
 checkBox_exp_1animal_graphs$active <- TRUE;
@@ -107,11 +196,11 @@ comboLangs$active <- 0;
 animalCombo <- gtkComboBoxNewText();
 sheepCombo  <- gtkComboBoxNewText();
 # the 'browse' buttons will add the filenames to these two lists
-animal_filenames <- Map ( function(i){"??"}, 1:MAX_ANIMALS);
-sheep_filenames <- Map ( function(i){"??"}, 1:MAX_ANIMALS);
+animal_filenames <- Map ( function(i){""}, 1:MAX_ANIMALS);
+sheep_filenames <- Map ( function(i){""}, 1:MAX_ANIMALS);
 # the labels that will display the chosen filenames
-animal_filenameLabels <- Map ( function(i){gtkLabel(animal_filenames[[i]])}, 1:MAX_ANIMALS);
-sheep_filenameLabels <- Map ( function(i){gtkLabel(sheep_filenames[[i]])}, 1:MAX_ANIMALS);
+animal_filenameLabels <- Map ( function(i){gtkLabel("??")}, 1:MAX_ANIMALS);
+sheep_filenameLabels <- Map ( function(i){gtkLabel("??")}, 1:MAX_ANIMALS);
 # the entries to choose the name for each animal and sheep
 animal_nameEntries <- Map ( function(i){gtkEntry()}, 1:MAX_ANIMALS);
 sheep_nameEntries <- Map ( function(i){gtkEntry()}, 1:MAX_ANIMALS);
@@ -119,7 +208,9 @@ sheep_nameEntries <- Map ( function(i){gtkEntry()}, 1:MAX_ANIMALS);
 entryFPN <- gtkEntry();
 entryFPE <- gtkEntry();
 # display the current data set
-data_setLabel <- gtkLabel("Chosen data:");
+data_setLabel <- gtkLabel("");
+
+
 
 #choose_file <- function(button, data)
 #{
@@ -168,12 +259,12 @@ choose_data_file <- function (button, user.data)
     num <- user.data[2];
     if (is_an)
     {
-      animal_filenames[[num]] <- f;
+      animal_filenames[[num]] <<- f;
       animal_filenameLabels[[num]]$setText(disp_fname); # display only filename, not path
     }
     else
     {
-      sheep_filenames[[num]] <- f;
+      sheep_filenames[[num]] <<- f;
       sheep_filenameLabels[[num]]$setText(disp_fname); # display only filename, not path
     }
   }
@@ -187,7 +278,7 @@ filter_dir_f <- function (f)
 
 choose_base_folder <- function(button, data)
 {
-  d <- gtkFileChooserDialog(title="Choose a directory", parent=window, action="select-folder",
+  d <- gtkFileChooserDialog(title="Choose a directory", flags="destroy-with-parent", parent=window, action="select-folder",
                             "gtk-cancel", GtkResponseType["cancel"],
                             "gtk-open", GtkResponseType["accept"]);
   filter <-  gtkFileFilter();
@@ -261,7 +352,7 @@ errDialog <- function(text)
 # obtain the number of histogram classes in the user interface
 get_histClasses <- function()
 {
-    hC <- histClassesEntry$getText()
+  hC <- histClassesEntry$getText()
   histClasses <- as.numeric(hC);
   if (is.na(histClasses))
   {
@@ -291,7 +382,8 @@ get_filterDist <- function()
 # find the output folder, and validate it
 get_baseFolder <- function()
 {
-  bf <- paste(labelOutputFolder$getText(), .Platform$file.sep, sep="");
+  bf_text <- labelOutputFolder$getText();
+  bf <- paste(bf_text, .Platform$file.sep, sep="");
   if (bf == "")
     stop ("Pas de dossier de sortie choisi!")
   else if (!file_test("-d", bf))
@@ -300,36 +392,82 @@ get_baseFolder <- function()
 }
 
 # obtain the names of the test animals if arg=TRUE, of sheep otherwise
+# num is the max number to collect
 get_names <- function(is_test_animal)
 {
   names <- c();
   entries <- if (is_test_animal) animal_nameEntries else sheep_nameEntries;
+  num     <- if (is_test_animal) animals_data_set@numAnimals else animals_data_set@numSheep;
+  i <- 1;
   for ( e in entries)
   {
     name <- e$getText();
     if (name == "")
       stop ("Unspecified animal name");
     names <- append(names, name);
+    if ( i >= num )
+      return (names);
+    i <- i + 1;
   }
   return (names);
+}
+
+reset_temp_data <- function()
+{
+  animal_filenames <- Map ( function(i){""}, 1:MAX_ANIMALS);
+  sheep_filenames <- Map ( function(i){""}, 1:MAX_ANIMALS);
+  for ( l in animal_filenameLabels ) l$setText("??");
+  for ( l in sheep_filenameLabels ) l$setText("??");
+  for ( e in animal_nameEntries ) e$setText("");
+  for ( e in sheep_nameEntries ) e$setText("");
 }
 
 collect_current_data <- function(button)
 {
   a_names <- get_names (TRUE);
   s_names <- get_names (FALSE);
+
+  a_num <- animals_data_set@numAnimals;
+  s_num <- animals_data_set@numSheep;
+  # find which files do not exist
+  valid_animal_filenames <- Reduce(
+    function(v,f){ v & file_test("-f", f) }, animal_filenames[1:a_num], TRUE);
+  valid_sheep_filenames <- Reduce(
+    function(v,f){ v & file_test("-f", f) }, sheep_filenames[1:s_num], TRUE);
+
+      writeLines("animal files: "); print(animal_filenames[1:a_num]);
+      writeLines("sheep files: "); print(sheep_filenames[1:s_num]);
+  if ( ! valid_animal_filenames | ! valid_sheep_filenames )
+    stop("Some data files do not exist");
+
+  # include the data in the total data set
+  animals_data_set@numEntries <<- animals_data_set@numEntries + 1;
+  n <- animals_data_set@numEntries;
+  animals_data_set@outputFolder[[n]] <<- fastFolder;
+  animals_data_set@sheepNames[[n]] <<- as.list(s_names);
+  animals_data_set@animalNames[[n]] <<- as.list(a_names);
+  animals_data_set@sheepFiles[[n]] <<- sheep_filenames;
+  animals_data_set@animalFiles[[n]] <<- animal_filenames;
+
+  # make the text to display for this data part
   entry <- "(";
   la <- length(a_names);
-  for (i in 1:(la-1))
-    entry <- paste(entry, a_names[i], ", " , sep="");
+  if (la > 1)
+    for (i in 1:(la-1))
+      entry <- paste(entry, a_names[i], ", " , sep="");
   entry <- paste(entry, a_names[la], " <-> ", sep="");
   ls <- length(s_names);
-  for (i in 1:(ls-1))
-    entry <- paste(entry, s_names[i], ", " , sep="");
+  if (ls > 1)
+    for (i in 1:(ls-1))
+      entry <- paste(entry, s_names[i], ", " , sep="");
   entry <- paste(entry, s_names[ls], ")", sep="");
+  entry <- paste(entry, "=>", basename(fastFolder));
 
   text <- paste (data_setLabel$getText(), entry, sep="\n");
   data_setLabel$setText(text);
+
+  reset_temp_data();
+
 }
 # start the analysis, using the entered data
 #startStuff <- function(button, user.data)
@@ -451,16 +589,9 @@ collect_current_data <- function(button)
 #}
 
 # user.data = c(num_test_animals, num_sheep)
-startStuff <- function (button, user.data)
+startStuff <- function (button)
 {
-  #text <- paste("Coming soon ;)\n\ndata=");
-  #d <- gtkMessageDialog(text=text, parent=window, flags=0, type="info", buttons="ok")
-  #d$run();
-  #d$destroy();
-  numAnimals <- user.data[1];
-  numSheep <- user.data[2];
-  withCallingHandlers
-  (
+  withCallingHandlers(
     {
       HISTOGRAM_CLASSES <<- get_histClasses();
       FILTER_DIST <<- get_filterDist();
@@ -469,18 +600,21 @@ startStuff <- function (button, user.data)
       export_1animal_graph <- checkBox_exp_1animal_graphs$active;
       export_allanimals_graph <- checkBox_exp_allanimals_graphs$active;
 
-      start_analysis (numAnimals,numSheep,base_folder,export_1animal_graph,export_allanimals_graph,animals_data_set);
-} );#, error = function(e){});
-  #  },
-  #  error = function(e)
-  #  {
-  #    msg <- paste("Une erreur s'est produite:", e);
-  #    errDialog(msg);
-  #    cs <- sys.calls();
-  #    msg <- paste(msg, "Details:", cs, sep="\n\n" );
-  #    writeLines(msg);
-  #  }
-  #);
+      start_analysis (animals_data_set ,base_folder,export_1animal_graph,export_allanimals_graph);
+    },
+    error = function(e)
+    {
+      msg <- paste("Une erreur s'est produite:", e);
+      errDialog(msg);
+      cs <- sys.calls();
+      msg <- paste(msg, "Details:", cs, sep="\n\n" );
+      writeLines(msg);
+    }
+  );
+
+# do these things anyway
+# TEMP TEMP# TEMP TEMP# TEMP TEMP# TEMP TEMP# TEMP TEMP# TEMP TEMP# TEMP TEMP
+  window$destroy();
 }
 
 # this function adds stuff to the end of the given box using packStart
@@ -511,7 +645,6 @@ create_general_options <- function (box)
   labelHist <- gtkLabel("Number histogram classes:");
   hboxSettings$packStart(labelHist, F, F, 3);
   hboxSettings$packEnd(histClassesEntry, F, F, 3);
-  histClassesEntry$setText(as.character(HISTOGRAM_CLASSES));
   histClassesEntry$setWidthChars(7);
   
   hboxSettings2 <- gtkHBox(F, 10);
@@ -519,22 +652,24 @@ create_general_options <- function (box)
   labelFilter <- gtkLabel("Filter distance:");
   hboxSettings2$packStart(labelFilter, F, F, 3);
   hboxSettings2$packEnd(filterDistEntry, F, F, 3);
-  filterDistEntry$setText(as.character(FILTER_DIST));
   filterDistEntry$setWidthChars(7);
  }
 
 
 # callback for the ok button in animal number choice, b is useless but needed
 # user.data = list ( container to remove, data for create_data_choice_box)
-show_data_choice <- function(b, user.data)
+show_data_choice <- function(b, user.data=NULL)
 {
   window$title <- "Choose the data to analyse";
-  window$remove (user.data);
+  if ( ! is.null (user.data))
+    window$remove (user.data);
 
 
   # create the container with the number of animals
-  user.data <- c( animalCombo$active + 1  ,   sheepCombo$active + 1)
-  cont <- create_data_choice_box(user.data);
+  animals_data_set@numSheep <<- sheepCombo$active + 1;
+  animals_data_set@numAnimals <<- animalCombo$active + 1;
+
+  cont <- create_data_choice_box();
 
   window$add (cont);
   window$resize(1,1); # make minimum size
@@ -551,11 +686,12 @@ make_choose_file_button <- function (isAnimal, num)
   filepath <- gSignalConnect (b, "activate", choose_data_file, user.data);
   return (b);
 }
-create_data_choice_box <- function( user.data)
+create_data_choice_box <- function()
 {
+
   # get data
-  numberAnimals <- user.data[1];
-  numberSheep <- user.data[2];
+  numberAnimals <- animals_data_set@numAnimals;
+  numberSheep <- animals_data_set@numSheep;
   numRows <- max (numberAnimals, numberSheep);
 
   # create the total container
@@ -564,7 +700,6 @@ create_data_choice_box <- function( user.data)
   vboxAll <- gtkVBox(spacing=3);
 
   hboxDataInput <- gtkHBox(spacing=3);
-
 
   # create the components for the test animals
   vboxAnimals <- gtkVBox(spacing=3); 
@@ -622,6 +757,13 @@ create_data_choice_box <- function( user.data)
 
   vboxAll$packStart (gtkHSeparator(), expand=T, fill=F);
 
+
+  vboxAll$packStart (gtkLabel("Chosen data:"), expand=T, fill=T)
+  vboxAll$packStart (data_setLabel, expand=T, fill=T);
+
+
+  vboxAll$packStart (gtkHSeparator(), expand=T, fill=F);
+
   # create the general options and start button at the bottom
   create_general_options (vboxAll);
  
@@ -634,8 +776,7 @@ create_data_choice_box <- function( user.data)
   icon <- gtkImageNewFromIconName("gtk-apply", GtkIconSize["button"]);
   buttonStart$setImage(icon);
   hbox$packEnd(buttonStart, T, F, 3);
-  user.data <- c(numberAnimals, numberSheep);
-  gSignalConnect(buttonStart, "pressed", startStuff, user.data);
+  gSignalConnect(buttonStart, "pressed", startStuff);
 
 
   contDataChoice$add (vboxAll);
@@ -704,42 +845,28 @@ create_format_choice_box <- function()
 create_GUI <- function ()
 {
 # just show format window, it will call further to data choice window
-  contFmtChoice <- create_format_choice_box();
-  window$add(contFmtChoice);
-  window$resize(1,1); # make minimum size
-  window$move (gdkScreenWidth()/2 - 99, gdkScreenHeight() / 2 - 99);
+  #contFmtChoice <- create_format_choice_box();
+  #window$add(contFmtChoice);
+  #window$resize(1,1); # make minimum size
+  #window$move (gdkScreenWidth()/2 - 99, gdkScreenHeight() / 2 - 99);
+
+
+
+# TEMP TEMP# TEMP TEMP# TEMP TEMP# TEMP TEMP# TEMP TEMP# TEMP TEMP
+  animalCombo$appendText("1");
+  animalCombo$appendText("2");
+  animalCombo$appendText("3");
+  animalCombo$appendText("4");
+  animalCombo$setActive(animals_data_set@numAnimals - 1);
+  sheepCombo$appendText("1");
+  sheepCombo$appendText("2");
+  sheepCombo$appendText("3");
+  sheepCombo$appendText("4");
+  sheepCombo$setActive(animals_data_set@numSheep - 1);
+  show_data_choice(NULL);
 }
 
-create_GUI();
+#create_GUI();
+startStuff()
 # temp data to play with
-GUI_dog_data <<- c("Helix_testplot",
-                   "/media/data/toSave/paul/AGRIDEA/Base_de_donnée_GPS/Pfister_2014_Tirex_Agnella_Helix_Soldanella/Helix/",
-                   "/media/data/toSave/paul/AGRIDEA/Base_de_donnée_GPS/Pfister_2014_Tirex_Agnella_Helix_Soldanella/Helix/JHP_Helix_22_23_5_2014.txt",
-                   "/media/data/toSave/paul/AGRIDEA/Base_de_donnée_GPS/Pfister_2014_Tirex_Agnella_Helix_Soldanella/Helix/JHP_mouton1_Helix_22_23_5_2014.txt",
-                   "/media/data/toSave/paul/AGRIDEA/Base_de_donnée_GPS/Pfister_2014_Tirex_Agnella_Helix_Soldanella/Helix/JHP_mouton2_Helix_22_23_5_2014.txt",
-                   0,0,
-                   
-                   "Tirex_testplot" ,
-                   "/media/data/toSave/paul/AGRIDEA/Base_de_donnée_GPS/Pfister_2014_Tirex_Agnella_Helix_Soldanella/Tirex/", 
-                    "/media/data/toSave/paul/AGRIDEA/Base_de_donnée_GPS/Pfister_2014_Tirex_Agnella_Helix_Soldanella/Tirex/JHP_Tirex_10_11_4_2014.txt", 
-                    "/media/data/toSave/paul/AGRIDEA/Base_de_donnée_GPS/Pfister_2014_Tirex_Agnella_Helix_Soldanella/Tirex/JHP_mouton2_Tirex_10_11_4_2014.txt",
-                    "/media/data/toSave/paul/AGRIDEA/Base_de_donnée_GPS/Pfister_2014_Tirex_Agnella_Helix_Soldanella/Tirex/JHP_mouton1_Tirex_10_11_4_2014.txt",
-                    0, 
-                    0,
-                    "Helix_testplot",
-                   "/media/data/toSave/paul/AGRIDEA/Base_de_donnée_GPS/Pfister_2014_Tirex_Agnella_Helix_Soldanella/Helix/",
-                   "/media/data/toSave/paul/AGRIDEA/Base_de_donnée_GPS/Pfister_2014_Tirex_Agnella_Helix_Soldanella/Helix/JHP_Helix_22_23_5_2014.txt",
-                   "/media/data/toSave/paul/AGRIDEA/Base_de_donnée_GPS/Pfister_2014_Tirex_Agnella_Helix_Soldanella/Helix/JHP_mouton1_Helix_22_23_5_2014.txt",
-                   "/media/data/toSave/paul/AGRIDEA/Base_de_donnée_GPS/Pfister_2014_Tirex_Agnella_Helix_Soldanella/Helix/JHP_mouton2_Helix_22_23_5_2014.txt",
-                   0,0,
-                   
-                   "Tirex_testplot" ,
-                   "/media/data/toSave/paul/AGRIDEA/Base_de_donnée_GPS/Pfister_2014_Tirex_Agnella_Helix_Soldanella/Tirex/", 
-                    "/media/data/toSave/paul/AGRIDEA/Base_de_donnée_GPS/Pfister_2014_Tirex_Agnella_Helix_Soldanella/Tirex/JHP_Tirex_10_11_4_2014.txt", 
-                    "/media/data/toSave/paul/AGRIDEA/Base_de_donnée_GPS/Pfister_2014_Tirex_Agnella_Helix_Soldanella/Tirex/JHP_mouton2_Tirex_10_11_4_2014.txt",
-                    "/media/data/toSave/paul/AGRIDEA/Base_de_donnée_GPS/Pfister_2014_Tirex_Agnella_Helix_Soldanella/Tirex/JHP_mouton1_Tirex_10_11_4_2014.txt",
-                    0, 
-                    0
-
-                   );
 

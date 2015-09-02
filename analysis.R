@@ -72,6 +72,14 @@ read_files <- function (file_c, file_m1, file_m2)
   return(tmp);
 }
 
+read_file <- function (file)
+{
+  f2 <- removeUTFBOM(file);
+  tmp <- as.data.frame ( read.csv (file=f2, sep=DATA_SEP, row.names=NULL) );
+  file.remove(f2);
+  return (tmp);
+}
+
 # use a data frame to find the 3D position vectors
 # we get (long, lat) positions and need to find a (x,y,z) position
 # As described in http://en.wikipedia.org/wiki/Spherical_coordinate_system#Cartesian_coordinates
@@ -95,16 +103,15 @@ compute_pos <- function(x)
 # using a Nx3 matrix to compute a (N-1)x3 displacement matrix
 # the formula is simply the difference between the consecutive positions:
 # dx(t) = x(t+1) - x(t)
-compute_dx <- function(x)
+compute_dx <- function(vals)
 {
   # first create the empty result array
-  res <- array(0, dim=c(nrow(x)-1,3))
+  res <- array(0, dim=c(nrow(vals)-1,3))
   
   # for each value: the result[i-1] = x[i] - x[i-1]
-  for (i in 2:nrow(x))
-  {
-    res[i-1,] <- x[i,] - x[i-1,];
-  }
+  for (i in 2:nrow(vals))
+    res[i-1,] <- vals[i,] - vals[i-1,];
+  
   return(res)
 }
 
@@ -168,6 +175,250 @@ remove_duplicates_timestamp <- function(data)
     return (data);
   return (data[!duplicated(data$timestamp), ]);
 }
+
+analyse_one_animal <- function (animal_data, export_graphs)
+{
+  # take the data
+  num_animals   <- animal_data@numAnimals[[1]];
+  num_sheep     <- animal_data@numSheep[[1]];
+  files_animals <- animal_data@animalFiles[[1]][1:num_animals];
+  files_sheep   <- animal_data@sheepFiles[[1]][1:num_sheep];
+  names_animals <- animal_data@animalNames[[1]][1:num_animals];
+  names_sheep   <- animal_data@sheepNames[[1]][1:num_sheep];
+  
+
+  # prepare the data for the test animals and the sheep
+  animals_data <- Map ( function(x) read_file(x),   files_animals );
+  sheep_data  <- Map ( function(x) read_file(x), files_sheep );
+
+  # just check the timestamps
+  min_tstamps <- Map ( function (x) min(x[,"Timestamp"]), c(animals_data, sheep_data)); 
+  max_tstamps <- Map ( function (x) max(x[,"Timestamp"]), c(animals_data, sheep_data)); 
+  test_min_tstamp  <- unique(min_tstamps);
+  test_max_tstamp  <- unique(max_tstamps);
+  if ( length (test_min_tstamp) > 1 )
+    warning("All animals do not have the same start timestamp!");
+  if ( length (test_max_tstamp) > 1 )
+    warning("All animals do not have the same end timestamp!");
+
+
+  # now prepare the values
+  # xx_pos is the 3D position in space, from (long,lat), as a point
+  # xx_dx is the displacement from the previous position in 3D space, as a vector
+  animals_pos  <- Map ( function(x) compute_pos(x), animals_data );
+  animals_dx   <- Map ( function(x) compute_dx(x),  animals_pos );
+  sheep_pos    <- Map ( function(x) compute_pos(x), sheep_data );
+  sheep_dx     <- Map ( function(x) compute_dx(x),  sheep_pos );
+
+  # find relative positions of sheep wrt animals (vector from sheep to animal)
+  animals_to_sheep_vectors <-
+    # foreach animal .. 
+    Map ( function (pos_a)
+            # .. compute the vector to each sheep, a simple substraction
+            Map ( function (pos_s) pos_a - pos_s, sheep_pos )
+        , animals_pos
+    );
+
+
+
+  # find the distance between animals and sheep
+  animals_to_sheep_distances <-
+    # foreach animal .. 
+    Map ( function (pos_a)
+            # .. compute the vector to each sheep, a simple substraction
+            Map ( function (pos_s) norm3D(pos_a - pos_s), sheep_pos )
+        , animals_pos
+    );
+
+  # find the distance to the middle point of the sheep, that is the mean of all the distances
+  # AND the distance to the closest: We need to do almost the same calculations...
+  # So we compute both at the same time, and sort them later
+  tmp <-
+    Map ( # for each animal...
+          function (a2s_d)
+          { # .. create a matrix nxm, n=number of measures, and m=number of sheep ...
+            ncols <- length(a2s_d);
+            nrows <- length(a2s_d[[1]]); #[[1]] must exist
+            arr <- array ( unlist (a2s_d), dim=c(nrows, ncols));
+            dist_to_middle  <- apply ( arr, 1, mean); # ... then we take the mean in each row (=mean of all sheep at given timestamp) ...
+            dist_to_closest <- apply ( arr, 1, min);  # ... and also the minimum in each row.
+            list(dist_to_middle, dist_to_closest);
+          }
+        ,
+        animals_to_sheep_distances
+    );
+  # now we sort the values into two lists: tmp now contains pairs of vectors with min and mean
+  animals_to_middle_sheep_distance  <-
+    Map ( function(l) l[[1]], tmp) ; # take the first vector, mean
+  animals_to_closest_sheep_distance <-
+    Map ( function(l) l[[2]], tmp) ; # take the 2nd vector, min
+
+  # Find the alignment between animals and sheep
+  f_align <- function (dx_a, dx_s) # alignment between a and s is given by
+    dotprod3D(dx_a,dx_s) / norm3D(dx_a) / norm3D(dx_s) # the same formula to find angle b/w 2 vectors
+  animals_align_with_sheep <-
+    # foreach animal .. 
+    Map ( function (dx_a)
+            # .. compute the alignment with each sheep
+            Map ( function(dx_s) f_align(dx_a, dx_s) , sheep_dx )
+        , animals_dx
+    );
+
+  # Compute how much the animals are in front of the sheep
+  f_infront <- function (dx_a, vector_a_to_s) # in front between a and s is given by
+    dotprod3D(dx_a,vector_a_to_s) / norm3D(dx_a) / norm3D(vector_a_to_s) # again that formula with: the animal direction and the relative position of the sheep wrt the animal
+  animals_infrontof_sheep <- list();
+  for (i_a in 1:length(animals_dx))
+  {
+    animals_infrontof_sheep[[i_a]] <- list();
+    for ( i_s in 1:length(animals_to_sheep_vectors[[i_a]]))
+    {
+      a_to_s_v <- animals_to_sheep_vectors[[i_a]][[i_s]][0:-1,]; # remove the first vector, since compute_dx does the same
+      a_dx     <- animals_dx[[i_a]];
+      animals_infrontof_sheep[[i_a]][[i_s]] <- f_infront (a_dx, a_to_s_v );
+    }
+  }
+
+
+  # Now assemble in front and alignment to obtain an overall coordination value
+  animals_sheep_coord_posalign <- list();
+  animals_sheep_coord_negalign <- list();
+  for (i_a in 1:length(animals_dx))
+  {
+    animals_sheep_coord_posalign[[i_a]] <- list();
+    animals_sheep_coord_negalign[[i_a]] <- list();
+    for ( i_s in 1:length(animals_to_sheep_vectors[[i_a]]))
+    {
+      a_align_s   <- animals_align_with_sheep[[i_a]][[i_s]];
+      a_infront_s <- animals_infrontof_sheep[[i_a]][[i_s]];
+      tmp_coord <- a_align_s * a_infront_s; # we simply multiply
+
+      # now keep pos and neg alignment separate
+      pos_indexes <- a_align_s >= 0 & !is.nan(a_align_s);
+      neg_indexes <- a_align_s < 0 & !is.nan(a_align_s);
+      animals_sheep_coord_posalign[[i_a]][[i_s]] <- ifelse (pos_indexes, tmp_coord, NaN);
+      animals_sheep_coord_negalign[[i_a]][[i_s]] <- ifelse (neg_indexes, tmp_coord, NaN);
+    }
+  }
+    
+  return (
+    list (
+      "a2s_dist"        = animals_to_sheep_distances,
+      "a2_middle_s"     = animals_to_middle_sheep_distance,
+      "a2_closest_s"    = animals_to_closest_sheep_distance,
+      "coord_posalign"  = animals_sheep_coord_posalign,
+      "coord_negalign"  = animals_sheep_coord_negalign,
+      "a_pos"           = animals_pos,
+      "a_dx"            = animals_dx,
+      "s_pos"           = sheep_pos,
+      "s_dx"            = sheep_dx,
+      "a2s_vectors"     = animals_to_sheep_vectors,
+      "align"           = animals_align_with_sheep,
+      "infront"         = animals_infrontof_sheep
+    )
+  );
+}
+
+write_results <- function(animal_names, sheep_names, vals)
+{
+  #################################
+  # write some results out to the console
+
+  
+  for ( i_a in 1:length(animal_names))
+  {
+    dist_a    <- sum (norm3D (vals$"a_dx"[[i_a]]), na.rm=T);
+    for ( i_s in 1:length(sheep_names))
+    {
+
+      browser();
+
+      dist_s    <- sum (norm3D (vals$"s_dx"[[i_s]]), na.rm=T);
+      dist_rel  <- dist_a / dist_s;
+
+      mean_dist_a_closest   <- mean(vals$"a2_closest_s"[[i_a]]);
+      median_dist_a_closest <- median(vals$"a2_closest_s"[[i_a]]);
+      mean_dist_a_s         <- mean(vals$"a2s_dist"[[i_a]][[i_s]]);
+      median_dist_a_s       <- median(vals$"a2s_dist"[[i_a]][[i_s]]);
+
+      # Find the values related to alignment
+      coord_pos <- vals$"coord_posalign"[[i_a]][[i_s]];
+      coord_neg <- vals$"coord_negalign"[[i_a]][[i_s]];
+      front     <- vals$"infront"[[i_a]][[i_s]];
+      align     <- vals$"align"[[i_a]][[i_s]];
+
+      mean_front <- mean(front, na.rm=T);
+      mean_align <- mean(align, na.rm=T);
+
+      mean_coord_align_pos <- mean(coord_pos, na.rm=TRUE);
+      mean_coord_align_neg <- mean(coord_neg, na.rm=TRUE);
+      
+      mean_coord_align_pos_right <- mean(Filter(f_pos, coord_pos), na.rm=T);
+      mean_coord_align_pos_left <- mean(Filter(f_neg, coord_pos), na.rm=T);
+      mean_coord_align_neg_right <- mean(Filter(f_pos, coord_neg), na.rm=T);
+      mean_coord_align_neg_left <- mean(Filter(f_neg, coord_neg), na.rm=T);
+      
+      
+
+      
+      #fp_str <- paste(fixed_point_N,fixed_point_E);
+      wrtr <- function ( key , args = c() )
+      {
+        writeLines ( get_translation (key, args) );
+      }
+      writeLines("==========================");
+      writeLines("==========================");
+      writeLines("  Results for:");
+      writeLines(paste("    Animal: ", animal_names[[i_a]]));
+      writeLines(paste("    Sheep: ", sheep_names[[i_s]]));
+      writeLines("==========================");
+      writeLines("==========================");
+      wrtr ("dist_dog",                        c(dist_a));
+      wrtr ("dist_sheep",                      c(1,dist_s));
+      wrtr ("dist_sheep_rel",                  c(1,dist_rel));
+      wrtr ("mean_dist_closest",               c(mean_dist_a_closest));
+      wrtr ("median_dist_closest",             c(median_dist_a_closest));
+      wrtr ("mean_dist_middle",                c(mean_dist_a_s));
+      wrtr ("median_dist_middle",              c(median_dist_a_s));
+      wrtr ("dog_in_front1000",                c(1, mean_front * 1000));
+      wrtr ("dog_aligned100",                  c(1, mean_align * 100));
+      wrtr ("coord_align_pos",                 c(1, mean_coord_align_pos));
+      wrtr ("coord_align_neg",                 c(1, mean_coord_align_neg));
+      #wrtr ("num_barkings",                    c(sum_barking));
+      #wrtr ("fixed_pt",                        c(fp_str));
+      #wrtr ("mean_dist_fixed_pt",              c(mean_dist_fp));
+      wrtr ("res_mc1",                         c(mean_coord_align_pos_right));
+      wrtr ("res_mc2",	                       c(mean_coord_align_pos_left));
+      wrtr ("res_mc3",	                       c(mean_coord_align_neg_right));
+      wrtr ("res_mc4",	                       c(mean_coord_align_neg_left));
+  
+    }
+  }
+}
+
+
+start_analysis <- function (
+    animals_data,
+    output_folder,
+    export_1animal_graphs,
+    export_allanimals_graphs
+)
+{
+    writeLines("=====================\n\nOpening browsing stuff before anything happens\n\n==================");
+    browser();
+
+  for ( i in 1:animals_data@numEntries )
+  {
+    writeLines(paste("Starting analysis of animal ", i));
+    data <-  extractAnimalData(animals_data, i);
+    vals <- analyse_one_animal (data);
+    write_results(data@animalNames, data@sheepNames, vals);
+  }
+
+  writeLines("Magic finished =)");
+
+}
+
 
 #do the job!
 handle_dog <- function(export_dog_graphs, data_location)
@@ -500,19 +751,6 @@ handle_dog <- function(export_dog_graphs, data_location)
   
   return (results);
 }
-
-start_analysis <- function (
-    num_test_animals,
-    num_sheep,
-    output_folder,
-    export_1animal_graph,
-    export_allanimals_graph,
-    data
-)
-{
-    writeLines ("Start analysis");
-}
-
 handle_dogs <- function (
         base_folder, 
         export_1dog_graphs,
