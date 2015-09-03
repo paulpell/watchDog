@@ -327,7 +327,13 @@ write_results <- function(animal_names, sheep_names, vals)
   
   for ( i_a in 1:length(animal_names))
   {
+    # calculate only once
     dist_a    <- sum (norm3D (vals$"a_dx"[[i_a]]), na.rm=T);
+    mean_dist_a_closest   <- mean(vals$"a2_closest_s"[[i_a]]);
+    median_dist_a_closest <- median(vals$"a2_closest_s"[[i_a]]);
+    mean_dist_a_middle   <- mean(vals$"a2_middle_s"[[i_a]]);
+    median_dist_a_middle <- median(vals$"a2_middle_s"[[i_a]]);
+
     for ( i_s in 1:length(sheep_names))
     {
 
@@ -335,11 +341,6 @@ write_results <- function(animal_names, sheep_names, vals)
 
       dist_s    <- sum (norm3D (vals$"s_dx"[[i_s]]), na.rm=T);
       dist_rel  <- dist_a / dist_s;
-
-      mean_dist_a_closest   <- mean(vals$"a2_closest_s"[[i_a]]);
-      median_dist_a_closest <- median(vals$"a2_closest_s"[[i_a]]);
-      mean_dist_a_s         <- mean(vals$"a2s_dist"[[i_a]][[i_s]]);
-      median_dist_a_s       <- median(vals$"a2s_dist"[[i_a]][[i_s]]);
 
       # Find the values related to alignment
       coord_pos <- vals$"coord_posalign"[[i_a]][[i_s]];
@@ -359,8 +360,7 @@ write_results <- function(animal_names, sheep_names, vals)
       mean_coord_align_neg_left <- mean(Filter(f_neg, coord_neg), na.rm=T);
       
       
-
-      
+      # Now start writing
       #fp_str <- paste(fixed_point_N,fixed_point_E);
       wrtr <- function ( key , args = c() )
       {
@@ -378,8 +378,8 @@ write_results <- function(animal_names, sheep_names, vals)
       wrtr ("dist_sheep_rel",                  c(1,dist_rel));
       wrtr ("mean_dist_closest",               c(mean_dist_a_closest));
       wrtr ("median_dist_closest",             c(median_dist_a_closest));
-      wrtr ("mean_dist_middle",                c(mean_dist_a_s));
-      wrtr ("median_dist_middle",              c(median_dist_a_s));
+      wrtr ("mean_dist_middle",                c(mean_dist_a_middle));
+      wrtr ("median_dist_middle",              c(median_dist_a_middle));
       wrtr ("dog_in_front1000",                c(1, mean_front * 1000));
       wrtr ("dog_aligned100",                  c(1, mean_align * 100));
       wrtr ("coord_align_pos",                 c(1, mean_coord_align_pos));
