@@ -268,34 +268,35 @@ analyse_one_animal <- function (animal_data, export_graphs)
   f_infront <- function (dx_a, vector_a_to_s) # in front between a and s is given by
     dotprod3D(dx_a,vector_a_to_s) / norm3D(dx_a) / norm3D(vector_a_to_s) # again that formula with: the animal direction and the relative position of the sheep wrt the animal
   animals_infrontof_sheep <- list();
-  for (i_a in 1:length(animals_dx))
+  for (i_a in 1:num_animals)
   {
     animals_infrontof_sheep[[i_a]] <- list();
-    for ( i_s in 1:length(animals_to_sheep_vectors[[i_a]]))
+    a_dx <- animals_dx[[i_a]];
+    for (i_s in 1:num_sheep)
     {
       a_to_s_v <- animals_to_sheep_vectors[[i_a]][[i_s]][0:-1,]; # remove the first vector, since compute_dx does the same
-      a_dx     <- animals_dx[[i_a]];
       animals_infrontof_sheep[[i_a]][[i_s]] <- f_infront (a_dx, a_to_s_v );
     }
   }
 
 
-  # Now assemble in front and alignment to obtain an overall coordination value
+  # Now assemble in front and alignment to obtain an overall coordination value:
+  # The two values are simply multiplied. The simple definitions are sometimes the best :)
   animals_sheep_coord_posalign <- list();
   animals_sheep_coord_negalign <- list();
-  for (i_a in 1:length(animals_dx))
+  for (i_a in 1:num_animals)
   {
     animals_sheep_coord_posalign[[i_a]] <- list();
     animals_sheep_coord_negalign[[i_a]] <- list();
-    for ( i_s in 1:length(animals_to_sheep_vectors[[i_a]]))
+    for (i_s in 1:num_sheep)
     {
       a_align_s   <- animals_align_with_sheep[[i_a]][[i_s]];
       a_infront_s <- animals_infrontof_sheep[[i_a]][[i_s]];
-      tmp_coord <- a_align_s * a_infront_s; # we simply multiply
+      tmp_coord <- a_align_s * a_infront_s;
 
-      # now keep pos and neg alignment separate
-      pos_indexes <- a_align_s >= 0 & !is.nan(a_align_s);
-      neg_indexes <- a_align_s < 0 & !is.nan(a_align_s);
+      # now keep pos and neg alignment separate (in coordination histograms, it is top and bottom)
+      pos_indexes <- a_align_s >= 0;
+      neg_indexes <- a_align_s < 0;
       animals_sheep_coord_posalign[[i_a]][[i_s]] <- ifelse (pos_indexes, tmp_coord, NaN);
       animals_sheep_coord_negalign[[i_a]][[i_s]] <- ifelse (neg_indexes, tmp_coord, NaN);
     }
@@ -325,47 +326,57 @@ write_results <- function(animal_names, sheep_names, vals)
   # write some results out to the console
 
   
+  # foreach animal
   for ( i_a in 1:length(animal_names))
   {
-    # calculate only once
+    # calculate only once data that is valid for all sheep
     dist_a    <- sum (norm3D (vals$"a_dx"[[i_a]]), na.rm=T);
     mean_dist_a_closest   <- mean(vals$"a2_closest_s"[[i_a]]);
     median_dist_a_closest <- median(vals$"a2_closest_s"[[i_a]]);
     mean_dist_a_middle   <- mean(vals$"a2_middle_s"[[i_a]]);
     median_dist_a_middle <- median(vals$"a2_middle_s"[[i_a]]);
 
+    # for each sheep
     for ( i_s in 1:length(sheep_names))
     {
-
-      browser();
-
       dist_s    <- sum (norm3D (vals$"s_dx"[[i_s]]), na.rm=T);
       dist_rel  <- dist_a / dist_s;
 
       # Find the values related to alignment
-      coord_pos <- vals$"coord_posalign"[[i_a]][[i_s]];
-      coord_neg <- vals$"coord_negalign"[[i_a]][[i_s]];
+      coord_posalign <- vals$"coord_posalign"[[i_a]][[i_s]];
+      coord_negalign <- vals$"coord_negalign"[[i_a]][[i_s]];
+
       front     <- vals$"infront"[[i_a]][[i_s]];
       align     <- vals$"align"[[i_a]][[i_s]];
 
       mean_front <- mean(front, na.rm=T);
       mean_align <- mean(align, na.rm=T);
 
-      mean_coord_align_pos <- mean(coord_pos, na.rm=TRUE);
-      mean_coord_align_neg <- mean(coord_neg, na.rm=TRUE);
+      mean_coord_posalign <- mean(coord_posalign, na.rm=TRUE);
+      mean_coord_negalign <- mean(coord_negalign, na.rm=TRUE);
       
-      mean_coord_align_pos_right <- mean(Filter(f_pos, coord_pos), na.rm=T);
-      mean_coord_align_pos_left <- mean(Filter(f_neg, coord_pos), na.rm=T);
-      mean_coord_align_neg_right <- mean(Filter(f_pos, coord_neg), na.rm=T);
-      mean_coord_align_neg_left <- mean(Filter(f_neg, coord_neg), na.rm=T);
+      # coord_posalign > 0 when dog is in front
+      # coord_negalign < 0 when dog is in front
+      #mean_coord_palign_infront <- mean(Filter(f_pos, coord_posalign), na.rm=T);
+      #mean_coord_palign_inback  <- mean(Filter(f_neg, coord_posalign), na.rm=T);
+      #mean_coord_nalign_inback  <- mean(Filter(f_pos, coord_negalign), na.rm=T);
+      #mean_coord_nalign_infront <- mean(Filter(f_neg, coord_negalign), na.rm=T);
+  f_gtez <- function(i) i >= 0;
+  f_ltez <- function(i) i <= 0;
+  f_neg_or_nan <- function(i) is.na(i) || is.nan(i) || i < 0;
+  f_nan_to_zero <- function(i) ifelse( is.na(i)|is.nan(i), 0, i);
+      mean_coord_palign_infront <- mean(Filter(f_gtez, f_nan_to_zero(coord_posalign)));
+      mean_coord_palign_inback  <- mean(Filter(f_ltez, f_nan_to_zero(coord_posalign)));
+      mean_coord_nalign_inback  <- mean(Filter(f_gtez, f_nan_to_zero(coord_negalign)));
+      mean_coord_nalign_infront <- mean(Filter(f_ltez, f_nan_to_zero(coord_negalign)));
       
+      browser()
       
       # Now start writing
       #fp_str <- paste(fixed_point_N,fixed_point_E);
       wrtr <- function ( key , args = c() )
-      {
         writeLines ( get_translation (key, args) );
-      }
+
       writeLines("==========================");
       writeLines("==========================");
       writeLines("  Results for:");
@@ -382,15 +393,15 @@ write_results <- function(animal_names, sheep_names, vals)
       wrtr ("median_dist_middle",              c(median_dist_a_middle));
       wrtr ("dog_in_front1000",                c(1, mean_front * 1000));
       wrtr ("dog_aligned100",                  c(1, mean_align * 100));
-      wrtr ("coord_align_pos",                 c(1, mean_coord_align_pos));
-      wrtr ("coord_align_neg",                 c(1, mean_coord_align_neg));
+      wrtr ("coord_align_pos",                 c(1, mean_coord_posalign));
+      wrtr ("coord_align_neg",                 c(1, mean_coord_negalign));
       #wrtr ("num_barkings",                    c(sum_barking));
       #wrtr ("fixed_pt",                        c(fp_str));
       #wrtr ("mean_dist_fixed_pt",              c(mean_dist_fp));
-      wrtr ("res_mc1",                         c(mean_coord_align_pos_right));
-      wrtr ("res_mc2",	                       c(mean_coord_align_pos_left));
-      wrtr ("res_mc3",	                       c(mean_coord_align_neg_right));
-      wrtr ("res_mc4",	                       c(mean_coord_align_neg_left));
+      wrtr ("mean_coord_palign_infront",       c(mean_coord_palign_infront));
+      wrtr ("mean_coord_palign_inback",	       c(mean_coord_palign_inback ));
+      wrtr ("mean_coord_nalign_inback",	       c(mean_coord_nalign_inback ));
+      wrtr ("mean_coord_nalign_infront",	   c(mean_coord_nalign_infront));
   
     }
   }
@@ -404,8 +415,6 @@ start_analysis <- function (
     export_allanimals_graphs
 )
 {
-    writeLines("=====================\n\nOpening browsing stuff before anything happens\n\n==================");
-    browser();
 
   for ( i in 1:animals_data@numEntries )
   {
@@ -419,6 +428,22 @@ start_analysis <- function (
 
 }
 
+
+#################################################
+#################################################
+
+# Below are the old functions
+
+
+#################################################
+#################################################
+#################################################
+#################################################
+#################################################
+#################################################
+#################################################
+#################################################
+#################################################
 
 #do the job!
 handle_dog <- function(export_dog_graphs, data_location)
@@ -957,7 +982,7 @@ handle_dogs <- function (
       }
     }
     max_freq <- max(max_pos_freq, max_neg_freq);
-    key <- c("graph_hist_all_dogs_coord_both_sheep");
+    key <- c("hist_all_dogs_coord_both_sheep");
     subtitle = get_translation("hist_colors_label");
     startPDF (name=get_trans_filename(key), w=width, h=height, mfrow=mfrow);
     preparePDFTitle(get_translation(key), subtitle=subtitle);

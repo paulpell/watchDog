@@ -32,7 +32,15 @@ LANGUAGES$num_barkings <- c("Nombre d'aboiements: ^1",
 LANGUAGES$fixed_pt <- c("Point fixe: ^1", "Fixer Punkt: ^1");
 LANGUAGES$mean_dist_fixed_pt <- c("Moyenne des distances au point fixe: ^1","Durchschnitt der Distanzen zum fixen Punkt: ^1");
 
+LANGUAGES$mean_coord_palign_infront <- c("Moyenne coord align > 0, devant (x100): ^1", "Durchschnitt koord align > 0, vorne; (x100): ^1");
+LANGUAGES$mean_coord_palign_inback  <- c("Moyenne coord align > 0, derriere (x100): ^1", "Durchschnitt koord align > 0, hinten; (x100): ^1");
+LANGUAGES$mean_coord_nalign_inback  <- c("Moyenne coord align < 0, derriere (x100): ^1", "Durchschnitt koord align < 0, hinten; (x100): ^1");
+LANGUAGES$mean_coord_nalign_infront <- c("Moyenne coord align < 0, devant (x100): ^1", "Durchschnitt koord align < 0, vorne; (x100): ^1");
 
+################
+## Graph translations
+
+# labels, axis
 LANGUAGES$dist_km <- c("Distance [km]", "Distanz [km]");
 LANGUAGES$date <- c("Date", "Datum");
 LANGUAGES$time <- c("Temps", "Zeit");
@@ -42,6 +50,20 @@ LANGUAGES$red_median <- c("Mediane en rouge: ^1",
                           "Median in rot: ^1");
 LANGUAGES$sheep_i <- c("Mouton ^1", "Schaf ^1");
 
+LANGUAGES$graph_align_pos_left_label <- c("alignement > 0, chien suit mouton",
+                                          "Ausrichtung > 0, Hund folgt Schaf");
+LANGUAGES$graph_align_pos_right_label <- c("alignement > 0, mouton suit chien",
+                                           "Ausrichtung > 0, Schaf folgt Hund");
+LANGUAGES$graph_align_neg_left_label <- c("alignement < 0, animaux s'eloignent",
+                                          "Ausrichtung < 0, Tiere gehen auseinander");
+LANGUAGES$graph_align_neg_right_label <- c("alignement < 0, animaux se rapprochent",
+                                           "Ausrichtung < 0, Tiere gehen zueinander");
+
+LANGUAGES$no_available_data <- c("Pas de donnees disponibles pour ^1", "Keine verfuegbare Daten für ^1");
+
+LANGUAGES$hist_colors_label <- c("m1: rouge et bleu, m2: jaune et vert", "S1: rot und blau, S2: gelb und gruen");
+
+# graph names, also used to write to console
 LANGUAGES$graph_closest <- c("Distances ^1 au mouton le plus proche",
                                    "Distanzen ^1 zum naechsten Schaf");
 
@@ -71,42 +93,32 @@ LANGUAGES$graph_dist_both_sheep <- c("Distances ^1 aux deux moutons",
 LANGUAGES$graph_hist_coord_both_sheep <- c("Histogramme de coordination ^1 aux deux moutons",
                                      "Koordinationshistogramm ^1 zu beide Schafen");
 
-LANGUAGES$graph_align_pos_left_label <- c("alignement > 0, chien suit mouton",
-                                          "Ausrichtung > 0, Hund folgt Schaf");
-LANGUAGES$graph_align_pos_right_label <- c("alignement > 0, mouton suit chien",
-                                           "Ausrichtung > 0, Schaf folgt Hund");
-LANGUAGES$graph_align_neg_left_label <- c("alignement < 0, animaux s'eloignent",
-                                          "Ausrichtung < 0, Tiere gehen auseinander");
-LANGUAGES$graph_align_neg_right_label <- c("alignement < 0, animaux se rapprochent",
-                                           "Ausrichtung < 0, Tiere gehen zueinander");
 
+# comparison graphs
+LANGUAGES$boxplot_all <- c("Boxplot tous les chiens", "Boxplot alle Hunde");
+
+LANGUAGES$boxplot_all_no_outlier <- c("Boxplot tous les chiens sans extremes", "Boxplot alle Hunder ohne Extreme");
 
 LANGUAGES$dists_all_dogs_closest <- c("Distances des chiens au mouton le plus proche",
                                       "Distanz der Hunde zum naechsten Schaf");
 
-LANGUAGES$hist_dists_all_dogs_closest <- c("Histogramme des distances des chiens au mouton le plus proche",
-                                           "Histogramm der Distanzen der Hunde zum naechsten Schaf");
-
 LANGUAGES$dists_all_dogs_mean <- c("Distances des chiens a la moyenne des moutons",
                                       "Distanz der Hunde zur Mitte der Schafe");
-
-LANGUAGES$hist_dists_all_dogs_mean <- c("Histogramme des distances des chiens a la moyenne des moutons",
-                                        "Histogramm der Distanzen der Hunde zur Mitte der Schafe");
 
 LANGUAGES$dists_all_dogs_both <- c("Distances des chiens aux deux moutons",
                                    "Distanz der Hunde zu beide Schafe");
 
+LANGUAGES$hist_dists_all_dogs_mean <- c("Histogramme des distances des chiens a la moyenne des moutons",
+                                        "Histogramm der Distanzen der Hunde zur Mitte der Schafe");
 
-LANGUAGES$graph_hist_all_dogs_coord_both_sheep <- c("Histogramme de coordination chiens aux deux moutons",
+LANGUAGES$hist_dists_all_dogs_closest <- c("Histogramme des distances des chiens au mouton le plus proche",
+                                           "Histogramm der Distanzen der Hunde zum naechsten Schaf");
+
+
+LANGUAGES$hist_all_dogs_coord_both_sheep <- c("Histogramme de coordination chiens aux deux moutons",
                                            "Koordinationshistogramm Hunde zu beide Schafen");
 
-LANGUAGES$no_available_data <- c("Pas de donnees disponibles pour ^1", "Keine verfuegbare Daten für ^1");
-
-LANGUAGES$hist_colors_label <- c("m1: rouge et bleu, m2: jaune et vert", "S1: rot und blau, S2: gelb und gruen");
-
-LANGUAGES$boxplot_all <- c("Boxplot tous les chiens", "Boxplot alle Hunde");
-
-LANGUAGES$boxplot_all_no_outlier <- c("Boxplot tous les chiens sans extremes", "Boxplot alle Hunder ohne Extreme");
+# csv headers
 
 LANGUAGES$name_csv <- c("Resultats_tous_les_chiens", "Ergebnisse_alle_Hunde");
 LANGUAGES$res_n <- c("Nom_du_chien","Name_Hund");
