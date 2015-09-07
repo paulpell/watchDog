@@ -47,7 +47,8 @@ AnimalsDataSet <-
                 sheepNames="list", # list of vectors
                 sheepFiles="list", # list of vectors
                 animalNames="list", # list of vectors
-                animalFiles="list" # list of vectors
+                animalFiles="list", # list of vectors
+                fixedPoint="list"
             ));
 
 extractAnimalData <- function (x, i)
@@ -60,7 +61,8 @@ extractAnimalData <- function (x, i)
     sheepNames=x@sheepNames[i],
     sheepFiles=x@sheepFiles[i],
     animalNames=x@animalNames[i],
-    animalFiles=x@animalFiles[i]);
+    animalFiles=x@animalFiles[i],
+    fixedPoint=x@fixedPoint[i]);
 }
 
 
@@ -91,15 +93,15 @@ MAX_ANIMALS <- 5;
 
 # temp debug data
 temp_dog_data <- list (
-    list("H","T"),
+    list(c("H","T")),
     list(
       c("Hm1","Hm2"),
       c("Tm1","Tm2")
     ),
-    list("/media/data/toSave/paul/AGRIDEA/Base_de_donnée_GPS/Pfister_2014_Tirex_Agnella_Helix_Soldanella/Helix/",
+    list(c("/media/data/toSave/paul/AGRIDEA/Base_de_donnée_GPS/Pfister_2014_Tirex_Agnella_Helix_Soldanella/Helix/",
          "/media/data/toSave/paul/AGRIDEA/Base_de_donnée_GPS/Pfister_2014_Tirex_Agnella_Helix_Soldanella/Tirex/"
-    ),
-    list("/media/data/toSave/paul/AGRIDEA/Base_de_donnée_GPS/Pfister_2014_Tirex_Agnella_Helix_Soldanella/Helix/JHP_Helix_22_23_5_2014.txt",
+    )),
+    list(c("/media/data/toSave/paul/AGRIDEA/Base_de_donnée_GPS/Pfister_2014_Tirex_Agnella_Helix_Soldanella/Helix/JHP_Helix_22_23_5_2014.txt", "/media/data/toSave/paul/AGRIDEA/Base_de_donnée_GPS/Pfister_2014_Tirex_Agnella_Helix_Soldanella/Helix/JHP_Helix_22_23_5_2014.txt" ),
          "/media/data/toSave/paul/AGRIDEA/Base_de_donnée_GPS/Pfister_2014_Tirex_Agnella_Helix_Soldanella/Tirex/JHP_Tirex_10_11_4_2014.txt" 
     ),
     list(
@@ -108,17 +110,19 @@ temp_dog_data <- list (
       c(
         "/media/data/toSave/paul/AGRIDEA/Base_de_donnée_GPS/Pfister_2014_Tirex_Agnella_Helix_Soldanella/Tirex/JHP_mouton1_Tirex_10_11_4_2014.txt",
         "/media/data/toSave/paul/AGRIDEA/Base_de_donnée_GPS/Pfister_2014_Tirex_Agnella_Helix_Soldanella/Tirex/JHP_mouton2_Tirex_10_11_4_2014.txt")
-    )
+    ),
+    list(c(0,0),c(0,0))
 );
 animals_data_set <- AnimalsDataSet(
         numEntries=2,
-        numAnimals=1,
+        numAnimals=2,
         numSheep=2,
         animalNames=temp_dog_data[[1]],
         sheepNames=temp_dog_data[[2]],
         outputFolder=temp_dog_data[[3]],
         animalFiles=temp_dog_data[[4]],
-        sheepFiles=temp_dog_data[[5]]
+        sheepFiles=temp_dog_data[[5]],
+        fixedPoint=temp_dog_data[[6]]
         );
 
                   # 0,0,
@@ -154,18 +158,6 @@ fastFolder <- base_folder;
 # graphical interface objects, from which we read the values
 
 
-#entryDogName <- gtkEntry();
-#labelDogFile <- gtkLabel("");
-#dogFile <- "";
-#labelSheep1File <- gtkLabel("");
-#sheep1File <- "";
-#labelSheep2File <- gtkLabel("");
-#sheep2File <- "";
-
-
-
-
-
 # the main window
 window <- gtkWindow();
 
@@ -192,7 +184,6 @@ comboLangs$appendText("FR");
 comboLangs$appendText("DE");
 comboLangs$active <- 0;
 # this label displays what's happening (eg. the chosen dogs, or "Calculs en cours..")
-#dogListLabel <- gtkLabel("Aucun chien choisi");
 animalCombo <- gtkComboBoxNewText();
 sheepCombo  <- gtkComboBoxNewText();
 # the 'browse' buttons will add the filenames to these two lists
@@ -420,6 +411,17 @@ reset_temp_data <- function()
   for ( l in sheep_filenameLabels ) l$setText("??");
   for ( e in animal_nameEntries ) e$setText("");
   for ( e in sheep_nameEntries ) e$setText("");
+  entryFPN$setText("0");
+  entryFPE$setText("0");
+}
+
+get_fixed_point <- function()
+{
+  FPN <- as.double(entryFPN$getText());
+  FPE <- as.double(entryFPE$getText());
+  if (is.na(FPN) | is.na(FPE))
+    stop("The fixed point is not a number!");
+  c(FPN,FPE);
 }
 
 collect_current_data <- function(button)
@@ -435,10 +437,10 @@ collect_current_data <- function(button)
   valid_sheep_filenames <- Reduce(
     function(v,f){ v & file_test("-f", f) }, sheep_filenames[1:s_num], TRUE);
 
-      writeLines("animal files: "); print(animal_filenames[1:a_num]);
-      writeLines("sheep files: "); print(sheep_filenames[1:s_num]);
   if ( ! valid_animal_filenames | ! valid_sheep_filenames )
     stop("Some data files do not exist");
+
+  fp <- get_fixed_point();
 
   # include the data in the total data set
   animals_data_set@numEntries <<- animals_data_set@numEntries + 1;
@@ -448,6 +450,7 @@ collect_current_data <- function(button)
   animals_data_set@animalNames[[n]] <<- as.list(a_names);
   animals_data_set@sheepFiles[[n]] <<- sheep_filenames;
   animals_data_set@animalFiles[[n]] <<- animal_filenames;
+  animals_data_set@fixedPoint[[n]] <<- fp;
 
   # make the text to display for this data part
   entry <- "(";
@@ -746,7 +749,18 @@ create_data_choice_box <- function()
   hboxDataInput$packStart (gtkVSeparator(), expand=F, fill=F, padding=3);
   hboxDataInput$packStart (vboxSheep, expand=T, fill=T);
 
-  vboxAll$packStart (hboxDataInput, expand=T, fill=F);
+  vboxAll$packStart (hboxDataInput, expand=T, fill=F, padding=13);
+
+  hboxFPInput <- gtkHBox(spacing=3);
+  entryFPN$setWidthChars(9);entryFPE$setWidthChars(9);
+  entryFPN$setText("0.0");entryFPE$setText("0.0");
+  hboxFPInput$packStart (gtkLabel("Fixed point:"), expand=F, fill=F, padding=13);
+  hboxFPInput$packEnd (entryFPE, expand=F,fill=F);
+  hboxFPInput$packEnd (gtkLabel("East"), expand=F, fill=F);
+  hboxFPInput$packEnd (entryFPN, expand=F,fill=F);
+  hboxFPInput$packEnd (gtkLabel("North"), expand=F, fill=F);
+
+  vboxAll$packStart (hboxFPInput, expand=T, fill=F, padding=7);
 
   # button to add this set of files to the data to analyse
   button_add <- gtkButtonNewWithLabel("Add this data set");

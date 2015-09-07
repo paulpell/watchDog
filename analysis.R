@@ -201,6 +201,20 @@ analyse_one_animal <- function (animal_data, export_graphs)
   if ( length (test_max_tstamp) > 1 )
     warning("All animals do not have the same end timestamp!");
 
+  # Prepare the time data as time sequence
+  datetime_input_format <-
+    if (is.null(animals_data[[1]]$Time_Date))
+      "%Y-%m-%d %H:%M:%S"
+    else
+      "%H:%M:%S-%d.%m.%Y";
+  datetime_vector <-
+    if (is.null(animals_data[[1]]$Time_Date))
+      animals_data[[1]]$Date_Time
+    else
+      animals_data[[1]]$Time_Date;
+  time_seq <- as.POSIXct(datetime_vector, format=datetime_input_format);
+
+
 
   # now prepare the values
   # xx_pos is the 3D position in space, from (long,lat), as a point
@@ -209,6 +223,20 @@ analyse_one_animal <- function (animal_data, export_graphs)
   animals_dx   <- Map ( function(x) compute_dx(x),  animals_pos );
   sheep_pos    <- Map ( function(x) compute_pos(x), sheep_data );
   sheep_dx     <- Map ( function(x) compute_dx(x),  sheep_pos );
+
+  # find the distances from the animals to the given fixed point
+  fp            <- animal_data@fixedPoint[[1]];
+  fp_dataframe  <- data.frame(Latitude=fp[1], Longitude=fp[2]);
+  fp_3D         <- compute_pos (fp_dataframe);
+  animals_to_fp_distances <-
+    # foreach animal, compute the distance at every moment to the fixed point
+    Map ( function (pos_a)
+               {
+                 len <- dim(pos_a)[1];
+                 fps <- t( array (rep_len(fp_3D, 3*len), dim=c(3,len)) );
+                 norm3D(pos_a - fps)
+               }
+               , animals_pos )
 
   # find relative positions of sheep wrt animals (vector from sheep to animal)
   animals_to_sheep_vectors <-
@@ -274,8 +302,23 @@ analyse_one_animal <- function (animal_data, export_graphs)
     a_dx <- animals_dx[[i_a]];
     for (i_s in 1:num_sheep)
     {
-      a_to_s_v <- animals_to_sheep_vectors[[i_a]][[i_s]][0:-1,]; # remove the first vector, since compute_dx does the same
+      x <- animals_to_sheep_vectors[[i_a]][[i_s]];
+      #a_to_s_v <- animals_to_sheep_vectors[[i_a]][[i_s]][0:-1,]; # remove the first vector, since compute_dx does the same
+      nrows = nrow(x);
+      a_to_s_v <- x[2:nrows,]; # remove the first vector, since compute_dx does the same
       animals_infrontof_sheep[[i_a]][[i_s]] <- f_infront (a_dx, a_to_s_v );
+    }
+  }
+
+  # filter the values out, if dog is too far.
+  for (i_a in 1:num_animals)
+  {
+    for (i_s in 1:num_sheep)
+    {
+      x_tmp <- animals_to_sheep_distances[[i_a]][[i_s]];
+      indexes_too_far <- x_tmp[2:length(x_tmp)] > FILTER_DIST;
+      animals_infrontof_sheep[[i_a]][[i_s]][indexes_too_far] <- NaN;
+      animals_align_with_sheep[[i_a]][[i_s]][indexes_too_far] <- NaN;
     }
   }
 
@@ -299,6 +342,7 @@ analyse_one_animal <- function (animal_data, export_graphs)
       neg_indexes <- a_align_s < 0;
       animals_sheep_coord_posalign[[i_a]][[i_s]] <- ifelse (pos_indexes, tmp_coord, NaN);
       animals_sheep_coord_negalign[[i_a]][[i_s]] <- ifelse (neg_indexes, tmp_coord, NaN);
+      
     }
   }
     
@@ -307,6 +351,7 @@ analyse_one_animal <- function (animal_data, export_graphs)
       "a2s_dist"        = animals_to_sheep_distances,
       "a2_middle_s"     = animals_to_middle_sheep_distance,
       "a2_closest_s"    = animals_to_closest_sheep_distance,
+      "a2fp_dist"       = animals_to_fp_distances,
       "coord_posalign"  = animals_sheep_coord_posalign,
       "coord_negalign"  = animals_sheep_coord_negalign,
       "a_pos"           = animals_pos,
@@ -315,26 +360,29 @@ analyse_one_animal <- function (animal_data, export_graphs)
       "s_dx"            = sheep_dx,
       "a2s_vectors"     = animals_to_sheep_vectors,
       "align"           = animals_align_with_sheep,
-      "infront"         = animals_infrontof_sheep
+      "infront"         = animals_infrontof_sheep,
+      "time"            = time_seq
     )
   );
 }
 
+#################################
+# write some results out to the console
 write_results <- function(animal_names, sheep_names, vals)
 {
-  #################################
-  # write some results out to the console
-
-  
   # foreach animal
   for ( i_a in 1:length(animal_names))
   {
-    # calculate only once data that is valid for all sheep
+    # data that is valid for all sheep, but we write it for all sheep
     dist_a    <- sum (norm3D (vals$"a_dx"[[i_a]]), na.rm=T);
     mean_dist_a_closest   <- mean(vals$"a2_closest_s"[[i_a]]);
     median_dist_a_closest <- median(vals$"a2_closest_s"[[i_a]]);
     mean_dist_a_middle   <- mean(vals$"a2_middle_s"[[i_a]]);
     median_dist_a_middle <- median(vals$"a2_middle_s"[[i_a]]);
+    mean_dist_a_fp <- mean(vals$"a2fp_dist"[[1]]);
+    start_date_time <- vals$"time"[1];
+    end_date_time <- tail(vals$"time", n=1);
+    duration <- pretty_time(end_date_time - start_date_time);
 
     # for each sheep
     for ( i_s in 1:length(sheep_names))
@@ -357,20 +405,11 @@ write_results <- function(animal_names, sheep_names, vals)
       
       # coord_posalign > 0 when dog is in front
       # coord_negalign < 0 when dog is in front
-      #mean_coord_palign_infront <- mean(Filter(f_pos, coord_posalign), na.rm=T);
-      #mean_coord_palign_inback  <- mean(Filter(f_neg, coord_posalign), na.rm=T);
-      #mean_coord_nalign_inback  <- mean(Filter(f_pos, coord_negalign), na.rm=T);
-      #mean_coord_nalign_infront <- mean(Filter(f_neg, coord_negalign), na.rm=T);
-  f_gtez <- function(i) i >= 0;
-  f_ltez <- function(i) i <= 0;
-  f_neg_or_nan <- function(i) is.na(i) || is.nan(i) || i < 0;
-  f_nan_to_zero <- function(i) ifelse( is.na(i)|is.nan(i), 0, i);
-      mean_coord_palign_infront <- mean(Filter(f_gtez, f_nan_to_zero(coord_posalign)));
-      mean_coord_palign_inback  <- mean(Filter(f_ltez, f_nan_to_zero(coord_posalign)));
-      mean_coord_nalign_inback  <- mean(Filter(f_gtez, f_nan_to_zero(coord_negalign)));
-      mean_coord_nalign_infront <- mean(Filter(f_ltez, f_nan_to_zero(coord_negalign)));
-      
-      browser()
+      mean_coord_palign_infront <- mean(Filter(f_pos, coord_posalign), na.rm=T);
+      mean_coord_palign_inback  <- mean(Filter(f_neg, coord_posalign), na.rm=T);
+      mean_coord_nalign_inback  <- mean(Filter(f_pos, coord_negalign), na.rm=T);
+      mean_coord_nalign_infront <- mean(Filter(f_neg, coord_negalign), na.rm=T);
+     
       
       # Now start writing
       #fp_str <- paste(fixed_point_N,fixed_point_E);
@@ -385,24 +424,26 @@ write_results <- function(animal_names, sheep_names, vals)
       writeLines("==========================");
       writeLines("==========================");
       wrtr ("dist_dog",                        c(dist_a));
-      wrtr ("dist_sheep",                      c(1,dist_s));
-      wrtr ("dist_sheep_rel",                  c(1,dist_rel));
+      wrtr ("dist_sheep",                      c(dist_s));
+      wrtr ("dist_sheep_rel",                  c(dist_rel));
       wrtr ("mean_dist_closest",               c(mean_dist_a_closest));
       wrtr ("median_dist_closest",             c(median_dist_a_closest));
       wrtr ("mean_dist_middle",                c(mean_dist_a_middle));
       wrtr ("median_dist_middle",              c(median_dist_a_middle));
-      wrtr ("dog_in_front1000",                c(1, mean_front * 1000));
-      wrtr ("dog_aligned100",                  c(1, mean_align * 100));
-      wrtr ("coord_align_pos",                 c(1, mean_coord_posalign));
-      wrtr ("coord_align_neg",                 c(1, mean_coord_negalign));
+      wrtr ("dog_in_front1000",                c(mean_front * 1000));
+      wrtr ("dog_aligned100",                  c(mean_align * 100));
+      wrtr ("coord_align_pos",                 c(mean_coord_posalign));
+      wrtr ("coord_align_neg",                 c(mean_coord_negalign));
       #wrtr ("num_barkings",                    c(sum_barking));
       #wrtr ("fixed_pt",                        c(fp_str));
-      #wrtr ("mean_dist_fixed_pt",              c(mean_dist_fp));
+      wrtr ("mean_dist_fixed_pt",              c(mean_dist_a_fp));
       wrtr ("mean_coord_palign_infront",       c(mean_coord_palign_infront));
       wrtr ("mean_coord_palign_inback",	       c(mean_coord_palign_inback ));
       wrtr ("mean_coord_nalign_inback",	       c(mean_coord_nalign_inback ));
       wrtr ("mean_coord_nalign_infront",	   c(mean_coord_nalign_infront));
-  
+      wrtr ("test_date_start",                 c(start_date_time));
+      wrtr ("test_date_end",                   c(end_date_time));
+      wrtr ("test_duration",                   c(duration));
     }
   }
 }
@@ -415,18 +456,249 @@ start_analysis <- function (
     export_allanimals_graphs
 )
 {
+  stored_values <- list();
+
+  browser()
 
   for ( i in 1:animals_data@numEntries )
   {
-    writeLines(paste("Starting analysis of animal ", i));
+    writeLines(paste("\n\n\nStarting analysis of animal ", i));
     data <-  extractAnimalData(animals_data, i);
     vals <- analyse_one_animal (data);
-    write_results(data@animalNames, data@sheepNames, vals);
+    names_a <- data@animalNames[[1]];
+    names_s <- data@sheepNames[[1]];
+    write_results(names_a, names_s, vals);
+
+    if (export_1animal_graphs)
+      draw_graphs_1animal (data@outputFolder, names_a, names_s, vals);
+
+    stored_values[[i]] <- vals;
   }
 
-  writeLines("Magic finished =)");
+  writeLines("\n\n\nMagic finished =)");
 
 }
+
+
+draw_graphs_1animal <- function(folder, animal_names, sheep_names, values)
+{
+
+  x_time_data <- values$"time";
+  start_date_time <- values$"time"[1];
+  end_date_time <- tail(values$"time", n=1);
+
+  axis_dates <- seq.POSIXt(start_date_time, end_date_time, length.out=9);
+  axis_labels <- format(axis_dates, graph_datetime_format);
+
+  num_animals <- length(animal_names);
+  num_sheep   <- length(sheep_names);
+
+  
+  if (num_animals == 1)
+    args_names <- c(animal_names[1])
+  else
+  {
+    args_names <- "";
+    for ( i in 1:(num_animals-1) )
+      args_names <- paste(args_names, animal_names[i], sep="+");
+    args_names <- paste(args_names, tail(animal_names, n=1), sep=", ");
+  }
+
+
+  setPDFFolder ( folder );
+  
+  # distances from the dog to the given fixed point
+  #key <- "graph_dist_fp";
+  #args <- c(dog_name, fp_str);
+  #makePlot( x=x_time_data, y=norms_c_fp, name_transl_key=key, name_transl_args=args,
+  #                custom_datetime_labels=axis_labels, custom_datetime_labels_at=axis_dates);
+
+  #
+  ## histogram of the distances from the dog to the given fixed point
+  #key <- "hist_dist_fp";
+  #args <- c(dog_name, fp_str);
+  #makeHist( x=norms_c_fp, name_transl_key=key, name_transl_args=args, useDefaultBreaks=FALSE );
+
+
+
+  # distances to the closest sheep
+  mfrow <- c(1, num_animals );
+  filename <- get_trans_filename("graph_closest", args_names);
+  title <- get_translation("graph_closest", args_names);
+  browser()
+  startPDF(name=filename, mfrow=mfrow);
+  preparePDFTitle(title=title);
+  for (i in 1:num_animals)
+  {
+    main_direct <- "";
+    justPlot ( x=x_time_data, y=values$"a2_closest_s"[[i]],
+                    main_direct=main_direct,
+                    custom_datetime_labels=axis_labels, custom_datetime_labels_at=axis_dates );
+  }
+  endPDF();
+
+  return(); # TEMP TEMP TEMP TEMP TEMP TEMP TEMP
+  
+  # normalised distance dog-sheep mouton le plus proche
+  key <- "graph_closest_norm";
+  args <- c(dog_name);
+  makePlot ( x=x_time_data, y=dist_c_closest, name_transl_key=key, name_transl_args=args, ylim=c(0,1),
+                  custom_datetime_labels=axis_labels, custom_datetime_labels_at=axis_dates);
+   
+  # histogram of the distances dog-sheep mouton le plus proche
+  key <- "graph_hist_dist_closest";
+  args <- c(dog_name);
+  makeHist ( x=dist_c_closest, name_transl_key=key, name_transl_args=args, useDefaultBreaks=FALSE );
+  
+  # distance dog-sheep ? la position moyenne du mouton
+  key <- "graph_dist_mean";
+  args <- c(dog_name);
+  makePlot( x=x_time_data, y=dist_c_m, name_transl_key=key, name_transl_args=args,
+                  custom_datetime_labels=axis_labels, custom_datetime_labels_at=axis_dates);
+  
+  # normalised distance dog-sheep ? la position moyenne du mouton
+  key <- "graph_dist_mean_norm";
+  args <- c(dog_name);
+  makePlot( x=x_time_data, y=dist_c_m, name_transl_key=key, name_transl_args=args, ylim=c(0,1),
+                  custom_datetime_labels=axis_labels, custom_datetime_labels_at=axis_dates);
+    
+  # histogram of the distances dog-sheep ? la position moyenne du mouton
+  key <- "graph_hist_dist_mean";
+  args <- c(dog_name);
+  makeHist ( x=dist_c_m, name_transl_key=key, name_transl_args=args, useDefaultBreaks=FALSE );
+   
+  # Distances dog to both sheep: 2 lines, one green, one blue
+  key <- "graph_dist_both_sheep";
+  args <- c(dog_name);
+  data_m1 <- as.data.frame(dist_c_m1);
+  data_m2 <- as.data.frame(dist_c_m2);
+  extraFn <- function ()
+  {
+    lines(x_time_data, data_m2[,1], type='l', col='green', xaxt='n');
+  }
+  makePlot ( x=x_time_data, y=data_m1[,1], name_transl_key=key, name_transl_args=args, col="blue", extraFn=extraFn,
+                  custom_datetime_labels=axis_labels, custom_datetime_labels_at=axis_dates );
+
+
+  # histogram of coordination: we combine orientation and in front of to obtain an overall "coordination index"
+  # we will draw two histograms for each sheep:
+  # - one when the alignment is positive, on the top half of the graph
+  # - the other for negative alignment which will be on the bottom half
+
+  coords <- list(
+                filter_no_nan(coord_m1_positive_alignment),
+                filter_no_nan(coord_m1_negative_alignment),
+                filter_no_nan(coord_m2_positive_alignment),
+                filter_no_nan(coord_m2_negative_alignment)
+           );
+  # find which one has elements != NaN
+  has_coord <- Map ( function(v) { length(v) > 0 }, coords);
+
+  # find if there is data to draw
+  should_draw_coord <- Reduce (function (tmp, has_c){tmp | has_c}, has_coord, FALSE); # makes TRUE if at least one has no NaN
+
+  if ( ! should_draw_coord )
+      writeLines ("Coordination histogram can NOT be created")
+  else
+  # if yes, let's start =)
+  {
+    # create counts for the 4 data sets (is also ok if only NaN)
+    bs <- seq(-1,1,length.out=HISTOGRAM_CLASSES);
+    hists_no_plot <- list(
+                         hist(coords[[1]], plot=FALSE, breaks=bs),
+                         hist(coords[[2]], plot=FALSE, breaks=bs),
+                         hist(coords[[3]], plot=FALSE, breaks=bs),
+                         hist(coords[[4]], plot=FALSE, breaks=bs)
+                     );
+    max_freq <- 0;
+    for ( i in c(1,3) )
+    {
+      sum <- sum (hists_no_plot[[i]]$counts, hists_no_plot[[i+1]]$counts);
+      hists_no_plot[[i]]$counts <- hists_no_plot[[i]]$counts / sum;
+      hists_no_plot[[i+1]]$counts <- -hists_no_plot[[i+1]]$counts / sum;
+      max_tmp <- max (hists_no_plot[[1]]$counts, abs(hists_no_plot[[i+1]]$counts));
+      max_freq <- max(max_freq, max_tmp);
+    }
+
+    # prepare additional text
+    text_y_top <- 1.03 * max_freq;
+    text_y_bottom <- 1.03 * -max_freq;
+    text_x_left <- -0.5;
+    text_x_right <- 0.5;
+    # prepare other parameters
+    xlab <- "";
+    ylab <- get_translation ("rel_freq");
+    key <- "graph_hist_coord_both_sheep";
+    args <- c(dog_name);
+    ylim <- c(-max_freq, max_freq);
+    filename <- get_trans_filename (key, args);
+    title <- get_translation (key, args);
+    cols <- list("red","blue","yellow","green");
+
+    justCoordHist <- function(dataPos, dataNeg, has_dataPos, has_dataNeg, main,
+                              ylim, xlab, ylab, colPos, colNeg, 
+                              suppl_text_x, suppl_text_y)
+    {
+      plot_f <- function(data,col)
+      {
+        plot (data, main=main, ylim=ylim, xlab=xlab, ylab=ylab, col=col);
+      }
+      suppl_text <- list (
+                      get_translation("graph_align_pos_left_label"),
+                      get_translation("graph_align_neg_left_label"),
+                      get_translation("graph_align_pos_right_label"),
+                      get_translation("graph_align_neg_right_label")
+                    );
+      # if coords[[1 or 3]] have data, plot it
+      if (has_dataPos)
+        plot_f (data=dataPos, col=colPos);
+
+      # if coords[[2 or 4]] have data, plot it
+      if (has_dataNeg)
+      {
+        if (has_dataPos)
+          lines (dataNeg, col=colNeg)
+        else
+          plot_f (data=dataNeg, col=colNeg);
+      }
+
+      if (has_dataPos | has_dataNeg)
+      {
+        ls_top <- c(suppl_text[[1]], suppl_text[[3]]);
+        ls_bot <- c(suppl_text[[2]], suppl_text[[4]]);
+        text(x=c(suppl_text_x[1], suppl_text_x[2]), y=c(suppl_text_y[1]), labels=ls_top);
+        text(x=c(suppl_text_x[1], suppl_text_x[2]), y=c(suppl_text_y[2]), labels=ls_bot);
+        abline(v=0);
+      }
+      else
+      {
+        plot(c(),c(),xlim=c(-1,1),ylim=c(-1,1),axes=FALSE,xlab="",ylab="")
+        text(0, 0, get_translation("no_available_data"));
+      }
+    }
+
+
+    # ok let's draw
+    startPDF ( name=filename, mfrow=c(1, 2), w=1.4*DEFAULT_PDF_WIDTH, h=1.4*DEFAULT_PDF_HEIGHT ); # make 2 graphs, 1 for each sheep
+    preparePDFTitle (title);
+    for (startI in c(1,3))
+    {
+      sheep_i <- 2 - (startI %% 3); # 1->1, 3->2
+      main <- get_translation("sheep_i", c(sheep_i));
+      i1 <- startI; i2 <- startI + 1;
+      justCoordHist (dataPos=hists_no_plot[[i1]], dataNeg=hists_no_plot[[i2]],
+                      has_dataPos=has_coord[[i1]], has_dataNeg=has_coord[[i2]],
+                      main=main, ylim=ylim, xlab=xlab, ylab=ylab, colPos=cols[[i1]],
+                      colNeg=cols[[i2]], suppl_text_x=c(text_x_left,text_x_right),
+                      suppl_text_y=c(text_y_top,text_y_bottom));
+    }
+    endPDF();
+  }
+
+  writeLines("");
+  writeLines("");
+}
+
 
 
 #################################################
@@ -1049,6 +1321,17 @@ handle_dogs <- function (
   writeLines("\nmagic finished =)\n");
 }
 
+
+
+
+##################################################
+##################################################
+##################################################
+##################################################
+##################################################
+##################################################
+#
+#  Backup old draw graph function
 
 draw_graphs_1dog <- function(folder, dog_name, fp_str, x_time_data, norms_c_fp, dist_c_closest, dist_c_m,
                                dist_c_m1, dist_c_m2, coord_m1_positive_alignment,

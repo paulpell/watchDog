@@ -6,10 +6,14 @@
 LANGUAGES <- new.env();
 LANGUAGES$dist_dog <- c("Distance parcourue par le chien: ^1km",
                         "Strecke vom Hund gelaufen: ^1km ");
-LANGUAGES$dist_sheep <- c("Distance parcourue par le mouton ^1: ^2km",
+LANGUAGES$dist_sheep_i <- c("Distance parcourue par le mouton ^1: ^2km",
                           "Strecke vom Schaf ^1 gelaufen: ^2km");
-LANGUAGES$dist_sheep_rel <- c("Distance parcourue relative du chien pour le mouton ^1: ^2",
-                              "Relative Strecke vom Hund im Bezug zum Schaf ^1 gelaufen: ^2");
+LANGUAGES$dist_sheep <- c("Distance parcourue par le mouton: ^1km",
+                          "Strecke vom Schaf gelaufen: ^1km");
+LANGUAGES$dist_sheep_rel_i <- c("Distance parcourue relative du chien pour le mouton ^1: ^2",
+                              "Relative Strecke vom Hund im Bezug zum Schaf gelaufen ^1: ^2");
+LANGUAGES$dist_sheep_rel <- c("Distance parcourue relative du chien pour le mouton: ^1",
+                              "Relative Strecke vom Hund im Bezug zum Schaf gelaufen: ^1");
 LANGUAGES$mean_dist_closest <- c("Distance moyenne entre le chien et le mouton le plus proche: ^1km",
                                  "Durchschnittliche Distanz zwischen den Hund und das naechste Schaf: ^1km");
 LANGUAGES$median_dist_closest <- c("Distance mediane entre le chien et le mouton le plus proche: ^1km",
@@ -18,14 +22,22 @@ LANGUAGES$mean_dist_middle <- c("Distance moyenne entre le chien et le milieu de
                                 "Durchschnittliche Distanz zwischen den Hund und die Mitte der Schafe: ^1km");
 LANGUAGES$median_dist_middle <- c("Distance medianne entre le chien et le milieu des moutons: ^1km",
                                 "Median der Distanzen zwischen den Hund und die Mitte der Schafe: ^1km");
-LANGUAGES$dog_in_front1000 <- c("Chien est devant le mouton ^1, en moyenne (x1000): ^2",
+LANGUAGES$dog_in_front1000 <- c("Chien est devant le mouton, en moyenne (x1000): ^1",
+                                  "Hund ist durschnittlich vor dem Schaf (x1000): ^1");
+LANGUAGES$dog_in_front1000_i <- c("Chien est devant le mouton ^1, en moyenne (x1000): ^2",
                                   "Hund ist durschnittlich vor dem Schaf ^1 (x1000): ^2");
-LANGUAGES$dog_aligned100 <- c("Chien est aligne avec le mouton ^1, en moyenne (x100): ^2",
+LANGUAGES$dog_aligned100_i <- c("Chien est aligne avec le mouton ^1, en moyenne (x100): ^2",
                                 "Hund lauft durschnittlich mit dem Schaf ^1 parallel (x100): ^2");
-LANGUAGES$coord_align_pos <- c("Coordination mouton ^1 (quand ils sont alignes): ^2",
+LANGUAGES$dog_aligned100 <- c("Chien est aligne avec le mouton, en moyenne (x100): ^1",
+                                "Hund lauft durschnittlich mit dem Schaf parallel (x100): ^1");
+LANGUAGES$coord_align_pos_i <- c("Coordination mouton ^1 (quand ils sont alignes): ^2",
                                "Koordination Schaf ^1 (wenn sie parallel gehen): ^2");
-LANGUAGES$coord_align_neg <- c("Coordination mouton ^1 (quand ils ne sont pas alignes): ^2",
+LANGUAGES$coord_align_pos <- c("Coordination mouton (quand ils sont alignes): ^1",
+                               "Koordination Schaf (wenn sie parallel gehen): ^1");
+LANGUAGES$coord_align_neg_i <- c("Coordination mouton ^1 (quand ils ne sont pas alignes): ^2",
                                "Koordination Schaf ^1 (wenn sie nicht parallel gehen): ^2");
+LANGUAGES$coord_align_neg <- c("Coordination mouton (quand ils ne sont pas alignes): ^1",
+                               "Koordination Schaf (wenn sie nicht parallel gehen): ^1");
 LANGUAGES$num_barkings <- c("Nombre d'aboiements: ^1",
                                "Anzahl Bellen: ^1");
 
@@ -36,6 +48,9 @@ LANGUAGES$mean_coord_palign_infront <- c("Moyenne coord align > 0, devant (x100)
 LANGUAGES$mean_coord_palign_inback  <- c("Moyenne coord align > 0, derriere (x100): ^1", "Durchschnitt koord align > 0, hinten; (x100): ^1");
 LANGUAGES$mean_coord_nalign_inback  <- c("Moyenne coord align < 0, derriere (x100): ^1", "Durchschnitt koord align < 0, hinten; (x100): ^1");
 LANGUAGES$mean_coord_nalign_infront <- c("Moyenne coord align < 0, devant (x100): ^1", "Durchschnitt koord align < 0, vorne; (x100): ^1");
+LANGUAGES$test_date_start <- c("Date debut du test: ^1","Datum Testanfang: ^1");
+LANGUAGES$test_date_end <- c("Date fin du test: ^1","Datum Testende: ^1");
+LANGUAGES$test_duration <- c("Duree test: ^1","Dauer Test: ^1");
 
 ################
 ## Graph translations
