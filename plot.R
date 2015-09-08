@@ -196,16 +196,17 @@ justPlot <- function
     main_transl_key,
     main_transl_args=c(),
     main_direct=NULL,
-    sub=NULL,
+    #sub=NULL,
     xlab=DEFAULT_PLOT_X_LAB,
     ylab=DEFAULT_PLOT_Y_LAB,
-    type="l",
-    ylim=NULL,
-    col="black",
+    #type="l",
+    #ylim=NULL,
+    #col="black",
     extraFn=NULL, # we will call this function if not null
     xaxt="s",
     custom_datetime_labels=NULL,
-    custom_datetime_labels_at=NULL
+    custom_datetime_labels_at=NULL,
+    ...
   )
 {
   checkInPDF();
@@ -226,7 +227,8 @@ justPlot <- function
   main <- if ( ! is.null(main_direct) ) main_direct
           else if (main_transl_key=="") NULL
           else get_translation(main_transl_key, main_transl_args);
-  plot ( x, y, main=main, sub=sub, xlab=xlab, ylab=ylab, xaxt=xaxt, type=type, ylim=ylim, col=col );
+  #plot ( x, y, main=main, sub=sub, xlab=xlab, ylab=ylab, xaxt=xaxt, type=type, ylim=ylim, col=col, ... );
+  plot ( x, y, main=main, xlab=xlab, ylab=ylab, xaxt=xaxt, ... );
 
   if (useCustomDateLabels)
     axis(1, at=custom_datetime_labels_at, labels=custom_datetime_labels, padj=0.5);
