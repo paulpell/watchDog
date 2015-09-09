@@ -102,8 +102,8 @@ LANGUAGES$graph_dist_mean_norm <- c("Distances ^1 a la moyenne des moutons, norm
 LANGUAGES$graph_hist_dist_mean <- c("Histogramme distances ^1 a la moyenne des moutons",
                                     "Distanzhistogramm ^1 zum Mittelpunkt der Schafe");
 
-LANGUAGES$graph_dist_both_sheep <- c("Distances ^1 aux deux moutons",
-                                     "Distanzen ^1 zu beide Schafen");
+LANGUAGES$graph_dist_both_sheep <- c("Distances ^1 aux moutons",
+                                     "Distanzen ^1 zu den Schafen");
 
 LANGUAGES$graph_hist_coord_both_sheep <- c("Histogramme de coordination ^1 aux deux moutons",
                                      "Koordinationshistogramm ^1 zu beide Schafen");
