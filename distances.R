@@ -43,7 +43,7 @@ AnimalsDataSet <-
                 numEntries="numeric", # number of entries
                 numSheep="numeric",
                 numAnimals="numeric",
-                outputFolder="list", # list of single names
+                outputFolder="character", # vector of single names
                 sheepNames="list", # list of vectors
                 sheepFiles="list", # list of vectors
                 animalNames="list", # list of vectors
@@ -92,64 +92,45 @@ library("RGtk2");
 MAX_ANIMALS <- 5;
 
 # temp debug data
+tmpdir <- "/media/data/toSave/paul/AGRIDEA/Base_de_donnée_GPS/newdata/";
 temp_dog_data <- list (
-    list(c("H","T")),
-    list(
-      c("Hm1","Hm2"),
-      c("Tm1","Tm2")
+    list( # animal names
+      c("Helix","Tirex")
     ),
-    list(c("/media/data/toSave/paul/AGRIDEA/Base_de_donnée_GPS/Pfister_2014_Tirex_Agnella_Helix_Soldanella/Helix/",
-         "/media/data/toSave/paul/AGRIDEA/Base_de_donnée_GPS/Pfister_2014_Tirex_Agnella_Helix_Soldanella/Tirex/"
-    )),
-    list(c("/media/data/toSave/paul/AGRIDEA/Base_de_donnée_GPS/Pfister_2014_Tirex_Agnella_Helix_Soldanella/Helix/JHP_Helix_22_23_5_2014.txt", "/media/data/toSave/paul/AGRIDEA/Base_de_donnée_GPS/Pfister_2014_Tirex_Agnella_Helix_Soldanella/Helix/JHP_Helix_22_23_5_2014.txt" ),
-         "/media/data/toSave/paul/AGRIDEA/Base_de_donnée_GPS/Pfister_2014_Tirex_Agnella_Helix_Soldanella/Tirex/JHP_Tirex_10_11_4_2014.txt" 
+    list( # sheep names
+      c("m1","m2")
     ),
-    list(
-      c("/media/data/toSave/paul/AGRIDEA/Base_de_donnée_GPS/Pfister_2014_Tirex_Agnella_Helix_Soldanella/Helix/JHP_mouton1_Helix_22_23_5_2014.txt",
-        "/media/data/toSave/paul/AGRIDEA/Base_de_donnée_GPS/Pfister_2014_Tirex_Agnella_Helix_Soldanella/Helix/JHP_mouton2_Helix_22_23_5_2014.txt"),
+    c( # output folders
+      tmpdir
+    ),
+    list( # animal data files
       c(
-        "/media/data/toSave/paul/AGRIDEA/Base_de_donnée_GPS/Pfister_2014_Tirex_Agnella_Helix_Soldanella/Tirex/JHP_mouton1_Tirex_10_11_4_2014.txt",
-        "/media/data/toSave/paul/AGRIDEA/Base_de_donnée_GPS/Pfister_2014_Tirex_Agnella_Helix_Soldanella/Tirex/JHP_mouton2_Tirex_10_11_4_2014.txt")
+        paste(tmpdir,"JHP_Helix_22_23_5_2014.txt", sep=""),
+        paste(tmpdir,"JHP_Tirex_10_11_4_2014.txt", sep="")
+      )
     ),
-    list(c(0,0),c(0,0))
+    list( # sheep data files
+      c(
+        paste(tmpdir,"JHP_mouton1_Helix_22_23_5_2014.txt", sep=""),
+        paste(tmpdir,"JHP_mouton2_Helix_22_23_5_2014.txt", sep="")
+      )
+    ),
+    list( # fixed points
+      c(0,0)
+    )
 );
-animals_data_set <- AnimalsDataSet(
-        numEntries=2,
-        numAnimals=2,
-        numSheep=2,
-        animalNames=temp_dog_data[[1]],
-        sheepNames=temp_dog_data[[2]],
-        outputFolder=temp_dog_data[[3]],
-        animalFiles=temp_dog_data[[4]],
-        sheepFiles=temp_dog_data[[5]],
-        fixedPoint=temp_dog_data[[6]]
-        );
-
-                  # 0,0,
-                  # 
-                  #  0, 
-                  #  0 ); #,
-#                    "Helix_testplot",
-#                   "/media/data/toSave/paul/AGRIDEA/Base_de_donnée_GPS/Pfister_2014_Tirex_Agnella_Helix_Soldanella/Helix/",
-#                   "/media/data/toSave/paul/AGRIDEA/Base_de_donnée_GPS/Pfister_2014_Tirex_Agnella_Helix_Soldanella/Helix/JHP_Helix_22_23_5_2014.txt",
-#                   "/media/data/toSave/paul/AGRIDEA/Base_de_donnée_GPS/Pfister_2014_Tirex_Agnella_Helix_Soldanella/Helix/JHP_mouton1_Helix_22_23_5_2014.txt",
-#                   "/media/data/toSave/paul/AGRIDEA/Base_de_donnée_GPS/Pfister_2014_Tirex_Agnella_Helix_Soldanella/Helix/JHP_mouton2_Helix_22_23_5_2014.txt",
-#                   0,0,
-#                   
-#                   "Tirex_testplot" ,
-#                   "/media/data/toSave/paul/AGRIDEA/Base_de_donnée_GPS/Pfister_2014_Tirex_Agnella_Helix_Soldanella/Tirex/", 
-#                    "/media/data/toSave/paul/AGRIDEA/Base_de_donnée_GPS/Pfister_2014_Tirex_Agnella_Helix_Soldanella/Tirex/JHP_Tirex_10_11_4_2014.txt", 
-#                    "/media/data/toSave/paul/AGRIDEA/Base_de_donnée_GPS/Pfister_2014_Tirex_Agnella_Helix_Soldanella/Tirex/JHP_mouton2_Tirex_10_11_4_2014.txt",
-#                    "/media/data/toSave/paul/AGRIDEA/Base_de_donnée_GPS/Pfister_2014_Tirex_Agnella_Helix_Soldanella/Tirex/JHP_mouton1_Tirex_10_11_4_2014.txt",
-#                    0, 
-#                    0
-#
-#                   );
-
-
-# we update the data in this instance
-#animals_data_set <- AnimalsDataSet(numEntries=0);
-
+#animals_data_set <- AnimalsDataSet(
+#        numEntries=1,
+#        numAnimals=2,
+#        numSheep=2,
+#        animalNames=temp_dog_data[[1]],
+#        sheepNames=temp_dog_data[[2]],
+#        outputFolder=temp_dog_data[[3]],
+#        animalFiles=temp_dog_data[[4]],
+#        sheepFiles=temp_dog_data[[5]],
+#        fixedPoint=temp_dog_data[[6]]
+#        );
+animals_data_set <- AnimalsDataSet(numEntries=0);
 
 # when the user chooses a first file from a folder, we then propose that folder
 fastFolder <- base_folder;
@@ -859,28 +840,28 @@ create_format_choice_box <- function()
 create_GUI <- function ()
 {
 # just show format window, it will call further to data choice window
-  #contFmtChoice <- create_format_choice_box();
-  #window$add(contFmtChoice);
-  #window$resize(1,1); # make minimum size
-  #window$move (gdkScreenWidth()/2 - 99, gdkScreenHeight() / 2 - 99);
+  contFmtChoice <- create_format_choice_box();
+  window$add(contFmtChoice);
+  window$resize(1,1); # make minimum size
+  window$move (gdkScreenWidth()/2 - 99, gdkScreenHeight() / 2 - 99);
 
 
 
 # TEMP TEMP# TEMP TEMP# TEMP TEMP# TEMP TEMP# TEMP TEMP# TEMP TEMP
-  animalCombo$appendText("1");
-  animalCombo$appendText("2");
-  animalCombo$appendText("3");
-  animalCombo$appendText("4");
-  animalCombo$setActive(animals_data_set@numAnimals - 1);
-  sheepCombo$appendText("1");
-  sheepCombo$appendText("2");
-  sheepCombo$appendText("3");
-  sheepCombo$appendText("4");
-  sheepCombo$setActive(animals_data_set@numSheep - 1);
-  show_data_choice(NULL);
+  #animalCombo$appendText("1");
+  #animalCombo$appendText("2");
+  #animalCombo$appendText("3");
+  #animalCombo$appendText("4");
+  #animalCombo$setActive(animals_data_set@numAnimals - 1);
+  #sheepCombo$appendText("1");
+  #sheepCombo$appendText("2");
+  #sheepCombo$appendText("3");
+  #sheepCombo$appendText("4");
+  #sheepCombo$setActive(animals_data_set@numSheep - 1);
+  #show_data_choice(NULL);
 }
 
-#create_GUI();
-startStuff()
+create_GUI();
+#startStuff()
 # temp data to play with
 
