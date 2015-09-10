@@ -16,7 +16,7 @@ LANG <<- LANGS[["FR"]];
 #change the base working folder here
 base_folder <-
   if ( .Platform$OS.type == "unix" ) "/tmp" else {
-      if ( .Platform$OS.type == "windowS" ) Sys.getenv("TEMP");
+      if ( .Platform$OS.type == "windows" ) Sys.getenv("TEMP");
   }
 
 DATA_SEP = ";"; # symbol between values in input files
@@ -84,8 +84,7 @@ plotpath <- paste(dirname(test),"plot.R", sep = .Platform$file.sep);
 source(plotpath);
 
 
-# if this fails, you need to install RGtk2, available at:
-# http://cran.r-project.org/web/packages/RGtk2/index.html
+# if this fails, you need to install the RGtk2 package, available at:
 library("RGtk2");
 
 
@@ -155,9 +154,9 @@ filterDistEntry$setText(as.character(FILTER_DIST));
 # label for the folder where the comparison CSV file and graphs are output
 labelOutputFolder <- gtkLabel(base_folder);
 # two check boxes for the graph export options
-checkBox_exp_1animal_graphs <- gtkCheckButton(label="Exporter graphes pour chaque chien", show=T);
+checkBox_exp_1animal_graphs <- gtkCheckButton(label="Export graphs for each data set", show=T);
 checkBox_exp_1animal_graphs$active <- TRUE;
-checkBox_exp_allanimals_graphs <- gtkCheckButton(label="Exporter graphes de comparaison", show=T);
+checkBox_exp_allanimals_graphs <- gtkCheckButton(label="Export comparison graphs", show=T);
 checkBox_exp_allanimals_graphs$active <- TRUE;
 # choose the language
 comboLangs <- gtkComboBoxNewText();
@@ -183,36 +182,11 @@ entryFPE <- gtkEntry();
 data_setLabel <- gtkLabel("");
 
 
-
-#choose_file <- function(button, data)
-#{
-#  d <- gtkFileChooserDialog(title="Choose a directory", parent=window, action="open",
-#                            "gtk-cancel", GtkResponseType["cancel"],
-#                            "gtk-open", GtkResponseType["accept"]);
-#  gtkFileChooserSetCurrentFolder(d, fastFolder);
-#  v <- d$run();
-#  if (v == GtkResponseType["accept"])
-#  {
-#    f <- d$getFilename();
-#    fastFolder <<- dirname(f);
-#    d$destroy();
-#    if (data == "dog")
-#    {
-#      gtkLabelSetText(labelDogFile, basename(f));
-#      dogFile <<- f;
-#    }
-#    if (data == "s1")
-#    {
-#      gtkLabelSetText(labelSheep1File, basename(f));
-#      sheep1File <<- f;
-#    }
-#    if (data == "s2")
-#    {
-#      gtkLabelSetText(labelSheep2File, basename(f));
-#      sheep2File <<- f;
-#    }
-#  }
-#}
+addButtonHandler <- function (but, handler, data=NULL)
+{
+  gSignalConnect (but, "pressed", handler, data=data);
+  gSignalConnect (but, "activate", handler, data=data);
+}
 
 #user.data is: c(bool_is_animal, num) (bool is false for sheep)
 choose_data_file <- function (button, user.data)
@@ -220,7 +194,16 @@ choose_data_file <- function (button, user.data)
   d <- gtkFileChooserDialog(title="Choose a GPS data file", parent=window, action="open",
                             "gtk-cancel", GtkResponseType["cancel"],
                             "gtk-open", GtkResponseType["accept"]);
-  gtkFileChooserSetCurrentFolder(d, fastFolder);
+  d$setCurrentFolder(fastFolder);
+  filter_txt_csv <- gtkFileFilterNew();
+  filter_txt_csv$addPattern("*.txt");
+  filter_txt_csv$addPattern("*.csv");
+  filter_txt_csv$setName("Text data file");
+  d$addFilter(filter_txt_csv);
+  filter_all <- gtkFileFilterNew();
+  filter_all$addPattern("*");
+  filter_all$setName("All file types");
+  d$addFilter(filter_all);
   v <- d$run();
   if (v == GtkResponseType["accept"])
   {
@@ -267,60 +250,12 @@ errDialog <- function(text)
 {
   dialog <- gtkMessageDialog(text=text, parent=window, flags=0, type="error", buttons="none")
   myf <- function(button, data){dialog$destroy();}
-  b <- gtkDialogAddButton(dialog, "fermer", 1);
+  b <- gtkDialogAddButton(dialog, "Close", 1);
   icon <- gtkImageNewFromIconName("gtk-close", GtkIconSize["button"]);
   b$setImage(icon);
-  gSignalConnect(b, "pressed", myf)
+  addButtonHandler(b, myf)
 }
 
-#update_fixed_point <- function()
-#{
-#  fixedPoint_north <<- as.double(entryFPN$getText());
-#  fixedPoint_east <<- as.double(entryFPE$getText());
-#  
-#  res <- !is.na(fixedPoint_east) & !is.na(fixedPoint_north);
-#  
-#  return (res);
-#}
-
-#add_dog <- function(button, user.data)
-#{
-#  dogName <- entryDogName$getText();
-#  if (dogName == "" | dogFile == "" | sheep1File == "" | sheep2File == "" | !update_fixed_point())
-#  {
-#    errDialog("Pas assez d'informations fournies =)");
-#  } else {
-#    folder <- paste(dirname(dogFile), .Platform$file.sep, sep="");
-#    GUI_dog_data <<- c(GUI_dog_data, c(dogName, folder, dogFile, sheep1File, sheep2File, fixedPoint_north, fixedPoint_east));
-#    print(GUI_dog_data);
-#    entryDogName$setText("");
-#    labelDogFile$setText("");
-#    labelSheep1File$setText("");
-#    labelSheep2File$setText("");
-#    dogFile <<- "";
-#    sheep1File <<- "";
-#    sheep2File <<- "";
-#    
-#    dogL <- "Chiens choisis: ";
-#    for (d in GUI_dog_data[seq(1,length(GUI_dog_data),7)])
-#      dogL <- paste(dogL, d, sep = "  ");
-#    dogListLabel$setText(dogL);
-#    fastFolder <<- base_folder;
-#  }
-#}
-#remove_dogs <- function(button, user.data)
-#{
-#  GUI_dog_data <<- c();
-#  entryDogName$setText("");
-#  labelDogFile$setText("");
-#  labelSheep1File$setText("");
-#  labelSheep2File$setText("");
-#  dogFile <<- "";
-#  sheep1File <<- "";
-#  sheep2File <<- "";
-#  dogListLabel$setText("Aucun chien choisi");
-#  fastFolder <<- base_folder;
-#}
 # obtain the number of histogram classes in the user interface
 get_histClasses <- function()
 {
@@ -407,176 +342,68 @@ get_fixed_point <- function()
 
 collect_current_data <- function(button)
 {
-  a_names <- get_names (TRUE);
-  s_names <- get_names (FALSE);
+  tryCatch(
+  {
+    a_num <- animals_data_set@numAnimals;
+    s_num <- animals_data_set@numSheep;
+    # find which files do not exist
+    valid_animal_filenames <- Reduce(
+      function(v,f){ v & file_test("-f", f) }, animal_filenames[1:a_num], TRUE);
+    valid_sheep_filenames <- Reduce(
+      function(v,f){ v & file_test("-f", f) }, sheep_filenames[1:s_num], TRUE);
 
-  a_num <- animals_data_set@numAnimals;
-  s_num <- animals_data_set@numSheep;
-  # find which files do not exist
-  valid_animal_filenames <- Reduce(
-    function(v,f){ v & file_test("-f", f) }, animal_filenames[1:a_num], TRUE);
-  valid_sheep_filenames <- Reduce(
-    function(v,f){ v & file_test("-f", f) }, sheep_filenames[1:s_num], TRUE);
+    if ( ! valid_animal_filenames || ! valid_sheep_filenames )
+      stop("Some data files do not exist");
 
-  if ( ! valid_animal_filenames | ! valid_sheep_filenames )
-    stop("Some data files do not exist");
+    a_names <- get_names (TRUE);
+    s_names <- get_names (FALSE);
 
-  fp <- get_fixed_point();
+    fp <- get_fixed_point();
 
-  # include the data in the total data set
-  animals_data_set@numEntries <<- animals_data_set@numEntries + 1;
-  n <- animals_data_set@numEntries;
-  animals_data_set@outputFolder[[n]] <<- fastFolder;
-  animals_data_set@sheepNames[[n]] <<- as.list(s_names);
-  animals_data_set@animalNames[[n]] <<- as.list(a_names);
-  animals_data_set@sheepFiles[[n]] <<- sheep_filenames;
-  animals_data_set@animalFiles[[n]] <<- animal_filenames;
-  animals_data_set@fixedPoint[[n]] <<- fp;
+    # include the data in the total data set
+    animals_data_set@numEntries <<- animals_data_set@numEntries + 1;
+    n <- animals_data_set@numEntries;
+    animals_data_set@outputFolder[[n]] <<- fastFolder;
+    animals_data_set@sheepNames[[n]] <<- as.list(s_names);
+    animals_data_set@animalNames[[n]] <<- as.list(a_names);
+    animals_data_set@sheepFiles[[n]] <<- sheep_filenames;
+    animals_data_set@animalFiles[[n]] <<- animal_filenames;
+    animals_data_set@fixedPoint[[n]] <<- fp;
 
-  # make the text to display for this data part
-  entry <- "(";
-  la <- length(a_names);
-  if (la > 1)
-    for (i in 1:(la-1))
-      entry <- paste(entry, a_names[i], ", " , sep="");
-  entry <- paste(entry, a_names[la], " <-> ", sep="");
-  ls <- length(s_names);
-  if (ls > 1)
-    for (i in 1:(ls-1))
-      entry <- paste(entry, s_names[i], ", " , sep="");
-  entry <- paste(entry, s_names[ls], ")", sep="");
-  entry <- paste(entry, "=>", basename(fastFolder));
+    # make the text to display for this data part
+    entry <- "(";
+    la <- length(a_names);
+    if (la > 1)
+      for (i in 1:(la-1))
+        entry <- paste(entry, a_names[i], ", " , sep="");
+    entry <- paste(entry, a_names[la], " <-> ", sep="");
+    ls <- length(s_names);
+    if (ls > 1)
+      for (i in 1:(ls-1))
+        entry <- paste(entry, s_names[i], ", " , sep="");
+    entry <- paste(entry, s_names[ls], ")", sep="");
+    entry <- paste(entry, "=>", basename(fastFolder));
 
-  text <- paste (data_setLabel$getText(), entry, sep="\n");
-  data_setLabel$setText(text);
+    text <- paste (data_setLabel$getText(), entry, sep="\n");
+    data_setLabel$setText(text);
 
-  reset_temp_data();
-
+    reset_temp_data();
+  }
+  , error = function (e)
+  {
+    msg <- paste("Error:", geterrmessage());
+    errDialog (msg);
+  });
 }
-# start the analysis, using the entered data
-#startStuff <- function(button, user.data)
-#{
-#  
-#  if (length(GUI_dog_data) == 0)
-#    errDialog("Aucun chien choisi!")
-#  else
-#  {
-#    dogsText <- dogListLabel$getText();
-#    dogListLabel$setText("Calculs en cours...");
-#    withCallingHandlers(
-#      {
-#        HISTOGRAM_CLASSES <<- get_histClasses();
-#        FILTER_DIST <<- get_filterDist();
-#        LANG <<- comboLangs$active + 1;
-#        base_folder <- get_baseFolder();
-#        export_1dog_graph <- checkBox_exp_1dog_graphs$active;
-#        export_alldogs_graph <- checkBox_exp_comp_graphs$active;
-#
-#        handle_dogs(base_folder, export_1dog_graph, export_alldogs_graph, GUI_dog_data);
-#      },
-#      error = function(e)
-#      {
-#        msg <- paste("Une erreur s'est produite:", e);
-#        errDialog(msg);
-#        cs <- sys.calls();
-#        msg <- paste(msg, "Details:", cs, sep="\n\n" );
-#        writeLines(msg);
-#      }
-#    );
-#    dogListLabel$setText(dogsText);
-#  }
-#}
 
-# create the window, with all the widgets
-#create_GUI_old <- function()
-#{  
-#  window$title <- "Test jeune chien";
-#  frame <- gtkFrame();
-#  window$add(frame);
-#  vbox <- gtkVBox(F, 10);
-#  frame$add(vbox);
-#  
-#  # name of the dog
-#  hboxDogName <- gtkHBox(F, 10);
-#  vbox$packStart(hboxDogName, F, F, 3);
-#  labelName <- gtkLabel("Nom du chien:");
-#  hboxDogName$packStart(labelName, F, F, 3);
-#  entryDogName$setWidthChars(30);
-#  hboxDogName$packEnd(entryDogName, F, F, 3);
-#  
-#  # horizontal box for dog file
-#  hboxDog <- gtkHBox(F, 10);
-#  vbox$packStart(hboxDog, F, F, 3);
-#  label1 <- gtkLabel("Fichier chien:");
-#  hboxDog$packStart(label1, F, F, 3);
-#  hboxDog$packStart(labelDogFile);
-#  buttonDogFile <- gtkButton("Choisir..");
-#  gSignalConnect(buttonDogFile, "pressed", choose_file, data="dog");
-#  label1$setMnemonicWidget(buttonDogFile);
-#  hboxDog$packEnd(buttonDogFile, F, F, 3);
-#  
-#  # sheep 1
-#  hboxS1 <- gtkHBox(F, 10);
-#  vbox$packStart(hboxS1, F, F, 3);
-#  label2 <- gtkLabel("Fichier mouton 1:");
-#  hboxS1$packStart(label2, F, F, 3);
-#  hboxS1$packStart(labelSheep1File);
-#  buttonSheep1File <- gtkButton("Choisir..");
-#  gSignalConnect(buttonSheep1File, "pressed", choose_file, data="s1");
-#  label2$setMnemonicWidget(buttonSheep1File);
-#  hboxS1$packEnd(buttonSheep1File, F, F, 3);
-#  
-#  # sheep 2
-#  hboxS2 <- gtkHBox(F, 10);
-#  vbox$packStart(hboxS2);
-#  label3 <- gtkLabel("Fichier mouton 2:");
-#  hboxS2$packStart(label3, F, F, 3);
-#  hboxS2$packStart(labelSheep2File);
-#  buttonSheep2File <- gtkButton("Choisir..");
-#  gSignalConnect(buttonSheep2File, "pressed", choose_file, data="s2");
-#  label3$setMnemonicWidget(buttonSheep2File);
-#  hboxS2$packEnd(buttonSheep2File, F, F, 3);
-#  
-#  # fixed position point
-#  hboxFP <- gtkHBox(F, 10);
-#  vbox$packStart(hboxFP);
-#  labelFP <- gtkLabel("Point fixe:"); 
-#  entryFPN$setText("0.0");
-#  entryFPE$setText("0.0");
-#  hboxFP$packStart(labelFP, F, F, 3);
-#  # north first, east second (inverted in code, as it starts from end)
-#  hboxFP$packEnd(entryFPE, F, F, 0);
-#  hboxFP$packEnd(gtkLabel("E"), F, F, 0);
-#  hboxFP$packEnd(entryFPN, F, F, 0);
-#  hboxFP$packEnd(gtkLabel("N"), F, F, 0);
-#  
-#  # button to add the dog
-#  hboxButtons <- gtkHBox(F, 10);
-#  vbox$packStart(hboxButtons, F, F, 3);
-#  buttonAddDog <- gtkButton("Ajouter ce chien");
-#  hboxButtons$packEnd(buttonAddDog, F, F, 3);
-#  gSignalConnect(buttonAddDog, "pressed", add_dog);
-#  buttonRemoveAllDogs <- gtkButton("Enlever les chiens");
-#  hboxButtons$packEnd(buttonRemoveAllDogs, F, F, 3);
-#  gSignalConnect(buttonRemoveAllDogs, "pressed", remove_dogs);
-#  
-#  vbox$packStart(gtkHSeparatorNew(), FALSE, FALSE, 0);
-#  
-#  #list the loaded dogs
-#  vbox$add(dogListLabel);
-#  
-#  
-#  vbox$packStart(gtkHSeparatorNew(), FALSE, FALSE, 0);
-#
-#  # add the other options
-#  create_general_options (vbox);
-#}
-
+# Start the analysis with the provided values
 # user.data = c(num_test_animals, num_sheep)
 startStuff <- function (button)
 {
-  withCallingHandlers(
+  tryCatch(
     {
+      if (animals_data_set@numEntries == 0)
+        stop("No data to analyse!");
       HISTOGRAM_CLASSES <<- get_histClasses();
       FILTER_DIST <<- get_filterDist();
       LANG <<- comboLangs$active + 1;
@@ -588,17 +415,13 @@ startStuff <- function (button)
     },
     error = function(e)
     {
-      msg <- paste("Une erreur s'est produite:", e);
+      msg <- paste("Error:", geterrmessage());
       errDialog(msg);
       cs <- sys.calls();
       msg <- paste(msg, "Details:", cs, sep="\n\n" );
       writeLines(msg);
     }
   );
-
-# do these things anyway
-# TEMP TEMP# TEMP TEMP# TEMP TEMP# TEMP TEMP# TEMP TEMP# TEMP TEMP# TEMP TEMP
-  window$destroy();
 }
 
 # this function adds stuff to the end of the given box using packStart
@@ -610,7 +433,7 @@ create_general_options <- function (box)
   hboxOutputFolder$packStart(labelOutputFolder, F, F, 3);
   baseFolderButton <- gtkButton("Choose...");
   hboxOutputFolder$packEnd(baseFolderButton, F, F, 10);
-  gSignalConnect(baseFolderButton, "pressed", choose_base_folder);
+  addButtonHandler(baseFolderButton, choose_base_folder);
 
   hboxExpGraphs <- gtkHBox ( T, 10 );
   box$packStart(hboxExpGraphs, F, F, 3);
@@ -666,14 +489,16 @@ make_choose_file_button <- function (isAnimal, num)
 {
   b <- gtkButtonNewWithLabel("browse..");
   user.data <- c(isAnimal, num);
-  filepath <- gSignalConnect (b, "pressed", choose_data_file, user.data);
-  filepath <- gSignalConnect (b, "activate", choose_data_file, user.data);
+  addButtonHandler (b, choose_data_file, user.data);
   return (b);
 }
+
+# Create a frame for choosing the names and files for animals,
+# and some settings: Output folder, histogram classes, ...
 create_data_choice_box <- function()
 {
 
-  # get data
+  # get data for how to set up the window
   numberAnimals <- animals_data_set@numAnimals;
   numberSheep <- animals_data_set@numSheep;
   numRows <- max (numberAnimals, numberSheep);
@@ -748,7 +573,7 @@ create_data_choice_box <- function()
   hbox <- gtkHBox();
   hbox$packStart (button_add, expand=T, fill=F, padding=5);
   vboxAll$packStart (hbox, expand=T, fill=F, padding=5);
-  gSignalConnect (button_add, "pressed", collect_current_data);
+  addButtonHandler (button_add, collect_current_data);
 
   vboxAll$packStart (gtkHSeparator(), expand=T, fill=F);
 
@@ -771,7 +596,7 @@ create_data_choice_box <- function()
   icon <- gtkImageNewFromIconName("gtk-apply", GtkIconSize["button"]);
   buttonStart$setImage(icon);
   hbox$packEnd(buttonStart, T, F, 3);
-  gSignalConnect(buttonStart, "pressed", startStuff);
+  addButtonHandler(buttonStart, startStuff);
 
 
   contDataChoice$add (vboxAll);
@@ -779,6 +604,7 @@ create_data_choice_box <- function()
   return (contDataChoice);
 }
 
+# Create a frame to choose the number of test animals and number of sheep
 create_format_choice_box <- function()
 {
   window$title <- "Choose the test format";
@@ -827,10 +653,7 @@ create_format_choice_box <- function()
   layout$packStart(hbox1, expand=F, fill=T);
 
   # the data we pass to show_data_choice is this container (to remove it)
-  gSignalConnect (buttonOk, "pressed", show_data_choice, data=contFormatChoice);
-  gSignalConnect (buttonOk, "activate", show_data_choice, data=contFormatChoice);
-
-
+  addButtonHandler (buttonOk, show_data_choice, data=contFormatChoice);
 
   contFormatChoice$add (layout)
 
@@ -844,24 +667,7 @@ create_GUI <- function ()
   window$add(contFmtChoice);
   window$resize(1,1); # make minimum size
   window$move (gdkScreenWidth()/2 - 99, gdkScreenHeight() / 2 - 99);
-
-
-
-# TEMP TEMP# TEMP TEMP# TEMP TEMP# TEMP TEMP# TEMP TEMP# TEMP TEMP
-  #animalCombo$appendText("1");
-  #animalCombo$appendText("2");
-  #animalCombo$appendText("3");
-  #animalCombo$appendText("4");
-  #animalCombo$setActive(animals_data_set@numAnimals - 1);
-  #sheepCombo$appendText("1");
-  #sheepCombo$appendText("2");
-  #sheepCombo$appendText("3");
-  #sheepCombo$appendText("4");
-  #sheepCombo$setActive(animals_data_set@numSheep - 1);
-  #show_data_choice(NULL);
 }
 
 create_GUI();
-#startStuff()
-# temp data to play with
 
