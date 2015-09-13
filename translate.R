@@ -90,7 +90,7 @@ LANGUAGES$hist_dist_fp <- c("Histogramme des distances ^1 au point fixe ^2",
 LANGUAGES$graph_closest_norm <- c("Distances ^1 au mouton le plus proche, normalisees sur 1 km",
                                    "Distanzen ^1 zum naechsten Schaf auf 1km normiert");
 
-LANGUAGES$graph_hist_dist_closest <- c("Histogramme des distances ^1 au mouton le plus proche",
+LANGUAGES$hist_closest <- c("Histogramme des distances ^1 au mouton le plus proche",
                                         "Distanzhistogramm ^1 zum naechsten Schaf");
 
 LANGUAGES$graph_dist_mean <- c("Distances ^1 a la moyenne des moutons",

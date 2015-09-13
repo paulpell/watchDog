@@ -5,7 +5,6 @@ library("Cairo");
 DEFAULT_PDF_WIDTH <- 12; # inches
 DEFAULT_PDF_HEIGHT <- 6; # inches
 
-
 # plot default values
 
 DEFAULT_PLOT_X_LAB <- get_translation("date");
@@ -16,6 +15,7 @@ DEFAULT_PLOT_Y_LAB <- get_translation("dist_km");
 HIST_DEFAULT_MAX_XLIM <- 0.1; # display only up to 100 meters
 
 HIST_DEFAULT_XLIMS <- c(0, HIST_DEFAULT_MAX_XLIM);
+
 
 
 #hist_big_max is used so that all values are included in the breaks
@@ -311,7 +311,7 @@ justHist <- function
     xlab=DEFAULT_HIST_X_LAB,
     ylab=DEFAULT_HIST_Y_LAB,
     showMedian=TRUE,
-    useDefaultBreaks=TRUE, # false means we compute the breaks from the median
+    useDefaultBreaks=TRUE, # false means we compute xlim from the median
     extraFn=NULL, # we will call this function if not null
     ylim=NULL
   )
@@ -326,15 +326,14 @@ justHist <- function
      else sub <- paste(sub, tr, sep="\n");
   }
 
+  breaks <- seq(min(x), max(x), len=HISTOGRAM_CLASSES);
   if (useDefaultBreaks)
   {
     xlim <- HIST_DEFAULT_MAX_XLIM;
-    breaks <- HIST_DEFAULT_BREAKS;
   }
   else
   {
     xlim <- 8*med;
-    breaks <- seq(0, xlim, xlim / HISTOGRAM_CLASSES);
     x <- Filter( function(i)i<=xlim, x);
   }
 

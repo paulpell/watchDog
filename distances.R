@@ -7,6 +7,8 @@
 #   From a graphical interface, there must be a button, or an entry in a menu to do that.
 #
 
+# first, clean the working environment, if an R session is reused
+rm ( list=ls(all=TRUE) )
 
 
 # settings for the language
@@ -65,24 +67,25 @@ extractAnimalData <- function (x, i)
     fixedPoint=x@fixedPoint[i]);
 }
 
-
-# this seems to be tricky: you NEED!! to SOURCE the file, not run it line by line
-test <- sys.frame(1)$fileName;
-if (is.null(test))
-  test <- sys.frame(1)$ofile;
+# we use this to find where this file is located in the file system,
+# and load the file given as arg from the same path
+  # this seems to be tricky: you NEED!! to SOURCE the file, not run it line by line
+if ( ! exists("source_folder") )
+  source_folder <<- sys.frame(1)$fileName;
+if (is.null(source_folder))
+  source_folder <<- sys.frame(1)$ofile;
+source_file <- function (filename)
+{
+  filepath <- paste(dirname(source_folder), filename, sep = .Platform$file.sep);
+  source(filepath);
+}
 
 # include computations file
-analysispath <- paste(dirname(test),"analysis.R", sep = .Platform$file.sep);
-source(analysispath);
-
+source_file("analysis.R")
 #include translation file
-translatepath <- paste(dirname(test),"translate.R", sep = .Platform$file.sep);
-source(translatepath);
-
-#include plot file
-plotpath <- paste(dirname(test),"plot.R", sep = .Platform$file.sep);
-source(plotpath);
-
+source_file("translate.R")
+# the plot file is included only when starting the analysis, to adapt to
+# the values from the GUI
 
 # if this fails, you need to install the RGtk2 package, available at:
 library("RGtk2");
@@ -97,7 +100,7 @@ temp_dog_data <- list (
       c("Helix","Tirex")
     ),
     list( # sheep names
-      c("m1","m2")
+      c("m1","m2","m3")
     ),
     c( # output folders
       tmpdir
@@ -111,25 +114,26 @@ temp_dog_data <- list (
     list( # sheep data files
       c(
         paste(tmpdir,"JHP_mouton1_Helix_22_23_5_2014.txt", sep=""),
-        paste(tmpdir,"JHP_mouton2_Helix_22_23_5_2014.txt", sep="")
+        paste(tmpdir,"JHP_mouton2_Helix_22_23_5_2014.txt", sep=""),
+        paste(tmpdir,"JHP_mouton3.txt", sep="")
       )
     ),
     list( # fixed points
       c(0,0)
     )
 );
-#animals_data_set <- AnimalsDataSet(
-#        numEntries=1,
-#        numAnimals=2,
-#        numSheep=2,
-#        animalNames=temp_dog_data[[1]],
-#        sheepNames=temp_dog_data[[2]],
-#        outputFolder=temp_dog_data[[3]],
-#        animalFiles=temp_dog_data[[4]],
-#        sheepFiles=temp_dog_data[[5]],
-#        fixedPoint=temp_dog_data[[6]]
-#        );
-animals_data_set <- AnimalsDataSet(numEntries=0);
+animals_data_set <- AnimalsDataSet(
+        numEntries=1,
+        numAnimals=2,
+        numSheep=2,
+        animalNames=temp_dog_data[[1]],
+        sheepNames=temp_dog_data[[2]],
+        outputFolder=temp_dog_data[[3]],
+        animalFiles=temp_dog_data[[4]],
+        sheepFiles=temp_dog_data[[5]],
+        fixedPoint=temp_dog_data[[6]]
+        );
+#animals_data_set <- AnimalsDataSet(numEntries=0);
 
 # when the user chooses a first file from a folder, we then propose that folder
 fastFolder <- base_folder;
