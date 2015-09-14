@@ -503,7 +503,7 @@ draw_graph_1val <- function (num_animals,
                          ...
                          )
 {
-  mfrow <- c(1, num_animals );
+  mfrow <- c( num_animals , 1 );# one column, n rows
   if ( ! is.null(x_time_data) )
   {
     filename <- get_trans_filename(key_filename_plot, args_filename_plot);
@@ -551,7 +551,7 @@ draw_graph_nvals <- function(
                          ...
                        )
 {
-  mfrow <- c(1, num_animals );
+  mfrow <- c( num_animals , 1 );# one column, n rows
   filename <- get_trans_filename(key_filename, args_filename);
   startPDF(name=filename, mfrow=mfrow);
   title <- get_translation(key_title, args_title);
@@ -689,8 +689,8 @@ draw_graphs_1animal <- function(folder, animal_names, sheep_names, values)
                          values$"a2s_dist",
                          main_direct_1animal,
                          axis_labels, axis_dates,
-                         key_title_plot="graph_dist_both_sheep",
-                         args_title_plot=c(allnames),
+                         key_title="graph_dist_both_sheep",
+                         args_title=c(allnames),
                          colors=c("blue","green","yellow","red")
                          );
 
@@ -708,138 +708,121 @@ draw_graphs_1animal <- function(folder, animal_names, sheep_names, values)
   #  - 2 last are the negative alignment values
   cpos <- values$"coord_posalign";
   cneg <- values$"coord_negalign";
-  #coords <- mapply (c, cn, cp, SIMPLIFY=F); # use function `c'
-  #coords <- list(
-  #              filter_no_nan(coord_m1_positive_alignment),
-  #              filter_no_nan(coord_m1_negative_alignment),
-  #              filter_no_nan(coord_m2_positive_alignment),
-  #              filter_no_nan(coord_m2_negative_alignment)
-  #         );
-  # find which one has elements != NaN
+
   has_coord_pos <- Map ( function(coords_a) lapply(coords_a, f_has_no_nan), cpos);
   has_coord_neg <- Map ( function(coords_a) lapply(coords_a, f_has_no_nan), cneg);
 
 
-
-  # find if there is data to draw
-  #should_draw_coord <- Reduce (function (tmp, has_c){tmp | has_c}, has_coord, FALSE); # makes TRUE if at least one has no NaN
-
-  #if ( ! should_draw_coord )
-  #    writeLines ("Coordination histogram can NOT be created")
-  #else
-  ## if yes, let's start =)
-  #{
-    # create counts for the data sets
-    bs <- seq(-1,1,length.out=HISTOGRAM_CLASSES);
-    hists_no_plot_pos <- Map (
-        function(coords_a) # for each animal .. 
-            lapply(coords_a, hist, plot=F, breaks=bs)
-        , cpos);
-    hists_no_plot_neg <- Map (
-        function(coords_a) # for each animal .. 
-            lapply(coords_a, hist, plot=F, breaks=bs)
-        , cneg);
-    
-    max_freq <- 0;
-    for ( i_a in 1:length(cpos) ) # for each animal
+  # create counts for the data sets
+  bs <- seq(-1,1,length.out=HISTOGRAM_CLASSES);
+  hists_no_plot_pos <- Map (
+      function(coords_a) # for each animal .. 
+          lapply(coords_a, hist, plot=F, breaks=bs)
+      , cpos);
+  hists_no_plot_neg <- Map (
+      function(coords_a) # for each animal .. 
+          lapply(coords_a, hist, plot=F, breaks=bs)
+      , cneg);
+  
+  max_freq <- 0;
+  for ( i_a in 1:length(cpos) ) # for each animal
+  {
+    for ( i_s in 1:length(cpos[[i_a]]) )
     {
-      for ( i_s in 1:length(cpos[[i_a]]) )
-      {
-        sum <- sum(hists_no_plot_pos[[i_a]][[i_s]]$counts,
-                   hists_no_plot_neg[[i_a]][[i_s]]$counts);
-        hists_no_plot_pos[[i_a]][[i_s]]$counts <-
-            hists_no_plot_pos[[i_a]][[i_s]]$counts / sum;
-        hists_no_plot_neg[[i_a]][[i_s]]$counts <-
-            - hists_no_plot_neg[[i_a]][[i_s]]$counts / sum;
-        max_freq <- max( max_freq,
-                         hists_no_plot_pos[[i_a]][[i_s]]$counts,
-                         abs(hists_no_plot_neg[[i_a]][[i_s]]$counts));
-      }
+      sum <- sum(hists_no_plot_pos[[i_a]][[i_s]]$counts,
+                 hists_no_plot_neg[[i_a]][[i_s]]$counts);
+      hists_no_plot_pos[[i_a]][[i_s]]$counts <-
+          hists_no_plot_pos[[i_a]][[i_s]]$counts / sum;
+      hists_no_plot_neg[[i_a]][[i_s]]$counts <-
+          - hists_no_plot_neg[[i_a]][[i_s]]$counts / sum;
+      max_freq <- max( max_freq,
+                       hists_no_plot_pos[[i_a]][[i_s]]$counts,
+                       abs(hists_no_plot_neg[[i_a]][[i_s]]$counts));
     }
-    # prepare additional text pos
-    text_y_top <- 1.03 * max_freq;
-    text_y_bottom <- 1.03 * -max_freq;
-    text_x_left <- -0.5;
-    text_x_right <- 0.5;
-    # prepare other parameters
-    xlab <- "";
-    ylab <- get_translation ("rel_freq");
-    key <- "graph_hist_coord_both_sheep";
-    args <- c();#c(dog_name);
-    ylim <- c(-max_freq, max_freq);
-    filename <- get_trans_filename (key, args);
-    title <- get_translation (key, args);
-    cols <- list("red","blue","yellow","green");
+  }
+  # prepare additional text pos
+  text_y_top <- 1.03 * max_freq;
+  text_y_bottom <- 1.03 * -max_freq;
+  text_x_left <- -0.5;
+  text_x_right <- 0.5;
+  # prepare other parameters
+  xlab <- "";
+  ylab <- get_translation ("rel_freq");
+  key <- "graph_hist_coord_both_sheep";
+  args <- c(allnames);
+  ylim <- c(-max_freq, max_freq);
+  filename <- get_trans_filename (key, args);
+  title <- get_translation (key, args);
+  cols <- list("red","blue","yellow","green");
 
-    justCoordHist <- function(dataPos, dataNeg, has_dataPos, has_dataNeg, main,
-                              ylim, xlab, ylab, colPos, colNeg, 
-                              suppl_text_x, suppl_text_y)
+  justCoordHist <- function(dataPos, dataNeg, has_dataPos, has_dataNeg, main,
+                            ylim, xlab, ylab, colPos, colNeg, 
+                            suppl_text_x, suppl_text_y)
+  {
+    plot_f <- function(data,col)
     {
-      plot_f <- function(data,col)
-      {
-        plot (data, main=main, ylim=ylim, xlab=xlab, ylab=ylab, col=col);
-      }
-      suppl_text <- list (
-                      get_translation("graph_align_pos_left_label"),
-                      get_translation("graph_align_neg_left_label"),
-                      get_translation("graph_align_pos_right_label"),
-                      get_translation("graph_align_neg_right_label")
-                    );
-      # if coords[[1 or 3]] have data, plot it
+      plot (data, main=main, ylim=ylim, xlab=xlab, ylab=ylab, col=col);
+    }
+    suppl_text <- list (
+                    get_translation("graph_align_pos_left_label"),
+                    get_translation("graph_align_neg_left_label"),
+                    get_translation("graph_align_pos_right_label"),
+                    get_translation("graph_align_neg_right_label")
+                  );
+    # if there is positive coordination data, plot it
+    if (has_dataPos)
+      plot_f (data=dataPos, col=colPos);
+
+    # if there is negative coordination data, plot it
+    if (has_dataNeg)
+    {
       if (has_dataPos)
-        plot_f (data=dataPos, col=colPos);
-
-      # if coords[[2 or 4]] have data, plot it
-      if (has_dataNeg)
-      {
-        if (has_dataPos)
-          lines (dataNeg, col=colNeg)
-        else
-          plot_f (data=dataNeg, col=colNeg);
-      }
-
-      if (has_dataPos | has_dataNeg)
-      {
-        ls_top <- c(suppl_text[[1]], suppl_text[[3]]);
-        ls_bot <- c(suppl_text[[2]], suppl_text[[4]]);
-        text(x=c(suppl_text_x[1], suppl_text_x[2]), y=c(suppl_text_y[1]), labels=ls_top);
-        text(x=c(suppl_text_x[1], suppl_text_x[2]), y=c(suppl_text_y[2]), labels=ls_bot);
-        abline(v=0);
-      }
+        lines (dataNeg, col=colNeg)
       else
-      {
-        plot(c(),c(),xlim=c(-1,1),ylim=c(-1,1),axes=FALSE,xlab="",ylab="")
-        text(0, 0, get_translation("no_available_data"));
-      }
+        plot_f (data=dataNeg, col=colNeg);
     }
 
-
-    # ok let's draw
-    n_a <- num_animals; n_s <- num_sheep;
-    mfrow <- c(n_a, n_s);
-    startPDF ( name=filename, mfrow=mfrow, w=1.4*DEFAULT_PDF_WIDTH, h=1.4*DEFAULT_PDF_HEIGHT ); # make 2 graphs, 1 for each sheep
-    preparePDFTitle (title);
-    for (i_a in 1:n_a)
+    if (has_dataPos | has_dataNeg)
     {
-      for (i_s in 1:n_s)
-      {
-        main <- main_direct_as_vs_sheep[i_a,i_s];
-        dpos <- hists_no_plot_pos[[i_a]][[i_s]];
-        dneg <- hists_no_plot_neg[[i_a]][[i_s]];
-        has_data_pos <- has_coord_pos[[i_a]][[i_s]];
-        has_data_neg <- has_coord_neg[[i_a]][[i_s]];
-        justCoordHist (dataPos=dpos, dataNeg=dneg,
-                      has_dataPos=has_data_pos,
-                      has_dataNeg=has_data_neg,
-                      main=main, ylim=ylim, xlab=xlab,
-                      ylab=ylab, colPos=cols[[1]],
-                      colNeg=cols[[2]],
-                      suppl_text_x=c(text_x_left,text_x_right),
-                      suppl_text_y=c(text_y_top,text_y_bottom));
-      }
+      ls_top <- c(suppl_text[[1]], suppl_text[[3]]);
+      ls_bot <- c(suppl_text[[2]], suppl_text[[4]]);
+      text(x=c(suppl_text_x[1], suppl_text_x[2]), y=c(suppl_text_y[1]), labels=ls_top);
+      text(x=c(suppl_text_x[1], suppl_text_x[2]), y=c(suppl_text_y[2]), labels=ls_bot);
+      abline(v=0);
     }
-    endPDF();
-  #}
+    else
+    {
+      plot(c(),c(),xlim=c(-1,1),ylim=c(-1,1),axes=FALSE,xlab="",ylab="")
+      text(0, 0, get_translation("no_available_data"));
+    }
+  }
+
+
+  # ok let's draw
+  n_a <- num_animals; n_s <- num_sheep;
+  mfrow <- c(n_a, n_s);
+  startPDF ( name=filename, mfrow=mfrow, w=1.4*DEFAULT_PDF_WIDTH, h=1.4*DEFAULT_PDF_HEIGHT ); # make 2 graphs, 1 for each sheep
+  preparePDFTitle (title);
+  for (i_a in 1:n_a)
+  {
+    for (i_s in 1:n_s)
+    {
+      main <- main_direct_as_vs_sheep[i_a,i_s];
+      dpos <- hists_no_plot_pos[[i_a]][[i_s]];
+      dneg <- hists_no_plot_neg[[i_a]][[i_s]];
+      has_data_pos <- has_coord_pos[[i_a]][[i_s]];
+      has_data_neg <- has_coord_neg[[i_a]][[i_s]];
+      justCoordHist (dataPos=dpos, dataNeg=dneg,
+                    has_dataPos=has_data_pos,
+                    has_dataNeg=has_data_neg,
+                    main=main, ylim=ylim, xlab=xlab,
+                    ylab=ylab, colPos=cols[[1]],
+                    colNeg=cols[[2]],
+                    suppl_text_x=c(text_x_left,text_x_right),
+                    suppl_text_y=c(text_y_top,text_y_bottom));
+    }
+  }
+  endPDF();
 
   writeLines("");
   writeLines("");

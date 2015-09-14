@@ -94,7 +94,7 @@ library("RGtk2");
 MAX_ANIMALS <- 5;
 
 # temp debug data
-tmpdir <- "/media/data/toSave/paul/AGRIDEA/Base_de_donnée_GPS/newdata/";
+tmpdir <- paste("sample", .Platform$file.sep, sep="");
 temp_dog_data <- list (
     list( # animal names
       c("Helix","Tirex")
@@ -107,15 +107,15 @@ temp_dog_data <- list (
     ),
     list( # animal data files
       c(
-        paste(tmpdir,"JHP_Helix_22_23_5_2014.txt", sep=""),
-        paste(tmpdir,"JHP_Tirex_10_11_4_2014.txt", sep="")
+        paste(tmpdir,"Helix.txt", sep=""),
+        paste(tmpdir,"Tirex-modified.txt", sep="")
       )
     ),
     list( # sheep data files
       c(
-        paste(tmpdir,"JHP_mouton1_Helix_22_23_5_2014.txt", sep=""),
-        paste(tmpdir,"JHP_mouton2_Helix_22_23_5_2014.txt", sep=""),
-        paste(tmpdir,"JHP_mouton3.txt", sep="")
+        paste(tmpdir,"mouton1.txt", sep=""),
+        paste(tmpdir,"mouton2.txt", sep=""),
+        paste(tmpdir,"mouton3.txt", sep="")
       )
     ),
     list( # fixed points
@@ -161,7 +161,8 @@ labelOutputFolder <- gtkLabel(base_folder);
 checkBox_exp_1animal_graphs <- gtkCheckButton(label="Export graphs for each data set", show=T);
 checkBox_exp_1animal_graphs$active <- TRUE;
 checkBox_exp_allanimals_graphs <- gtkCheckButton(label="Export comparison graphs", show=T);
-checkBox_exp_allanimals_graphs$active <- TRUE;
+checkBox_exp_allanimals_graphs$active <- FALSE;
+checkBox_exp_allanimals_graphs$sensitive <- FALSE;
 # choose the language
 comboLangs <- gtkComboBoxNewText();
 comboLangs$appendText("FR");
