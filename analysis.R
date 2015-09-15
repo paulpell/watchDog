@@ -186,6 +186,7 @@ analyse_one_animal <- function (animal_data, export_graphs)
   files_sheep   <- animal_data@sheepFiles[[1]][1:num_sheep];
   names_animals <- animal_data@animalNames[[1]][1:num_animals];
   names_sheep   <- animal_data@sheepNames[[1]][1:num_sheep];
+  useFP         <- animal_data@useFixedPoint;
   
 
   # prepare the data for the test animals and the sheep
@@ -225,19 +226,22 @@ analyse_one_animal <- function (animal_data, export_graphs)
   sheep_pos    <- Map ( function(x) compute_pos(x), sheep_data );
   sheep_dx     <- Map ( function(x) compute_dx(x),  sheep_pos );
 
-  # find the distances from the animals to the given fixed point
-  fp            <- animal_data@fixedPoint[[1]];
-  fp_dataframe  <- data.frame(Latitude=fp[1], Longitude=fp[2]);
-  fp_3D         <- compute_pos (fp_dataframe);
-  animals_to_fp_distances <-
-    # foreach animal, compute the distance at every moment to the fixed point
-    Map ( function (pos_a)
-               {
-                 len <- dim(pos_a)[1];
-                 fps <- t( array (rep_len(fp_3D, 3*len), dim=c(3,len)) );
-                 norm3D(pos_a - fps)
-               }
-               , animals_pos )
+  if (useFP)
+  {
+    # find the distances from the animals to the given fixed point
+    fp            <- animal_data@fixedPoint[[1]];
+    fp_dataframe  <- data.frame(Latitude=fp[1], Longitude=fp[2]);
+    fp_3D         <- compute_pos (fp_dataframe);
+    animals_to_fp_distances <-
+      # foreach animal, compute the distance at every moment to the fixed point
+      Map ( function (pos_a)
+                 {
+                   len <- dim(pos_a)[1];
+                   fps <- t( array (rep_len(fp_3D, 3*len), dim=c(3,len)) );
+                   norm3D(pos_a - fps)
+                 }
+                 , animals_pos )
+  }
 
   # find relative positions of sheep wrt animals (vector from sheep to animal)
   animals_to_sheep_vectors <-
@@ -353,7 +357,7 @@ analyse_one_animal <- function (animal_data, export_graphs)
       "a2s_dist"        = animals_to_sheep_distances,
       "a2_middle_s"     = animals_to_middle_sheep_distance,
       "a2_closest_s"    = animals_to_closest_sheep_distance,
-      "a2fp_dist"       = animals_to_fp_distances,
+      "a2fp_dist"       = if (useFP) animals_to_fp_distances else c(),
       "coord_posalign"  = animals_sheep_coord_posalign,
       "coord_negalign"  = animals_sheep_coord_negalign,
       "a_pos"           = animals_pos,
@@ -370,7 +374,7 @@ analyse_one_animal <- function (animal_data, export_graphs)
 
 #################################
 # write some results out to the console
-write_results <- function(animal_names, sheep_names, vals)
+write_results <- function(useFP, fp_str, animal_names, sheep_names, vals)
 {
   # foreach animal
   for ( i_a in 1:length(animal_names))
@@ -381,7 +385,7 @@ write_results <- function(animal_names, sheep_names, vals)
     median_dist_a_closest <- median(vals$"a2_closest_s"[[i_a]]);
     mean_dist_a_middle   <- mean(vals$"a2_middle_s"[[i_a]]);
     median_dist_a_middle <- median(vals$"a2_middle_s"[[i_a]]);
-    mean_dist_a_fp <- mean(vals$"a2fp_dist"[[1]]);
+    if (useFP) mean_dist_a_fp <- mean(vals$"a2fp_dist"[[1]]);
     start_date_time <- vals$"time"[1];
     end_date_time <- tail(vals$"time", n=1);
     duration <- pretty_time(end_date_time - start_date_time);
@@ -414,7 +418,6 @@ write_results <- function(animal_names, sheep_names, vals)
      
       
       # Now start writing
-      #fp_str <- paste(fixed_point_N,fixed_point_E);
       wrtr <- function ( key , args = c() )
         writeLines ( get_translation (key, args) );
 
@@ -436,9 +439,8 @@ write_results <- function(animal_names, sheep_names, vals)
       wrtr ("dog_aligned100",                  c(mean_align * 100));
       wrtr ("coord_align_pos",                 c(mean_coord_posalign));
       wrtr ("coord_align_neg",                 c(mean_coord_negalign));
-      #wrtr ("num_barkings",                    c(sum_barking));
-      #wrtr ("fixed_pt",                        c(fp_str));
-      wrtr ("mean_dist_fixed_pt",              c(mean_dist_a_fp));
+    if (useFP) wrtr ("fixed_pt",               c(fp_str));
+    if (useFP) wrtr ("mean_dist_fixed_pt",     c(mean_dist_a_fp));
       wrtr ("mean_coord_palign_infront",       c(mean_coord_palign_infront));
       wrtr ("mean_coord_palign_inback",	       c(mean_coord_palign_inback ));
       wrtr ("mean_coord_nalign_inback",	       c(mean_coord_nalign_inback ));
@@ -469,10 +471,12 @@ start_analysis <- function (
     vals <- analyse_one_animal (data);
     names_a <- data@animalNames[[1]];
     names_s <- data@sheepNames[[1]];
-    write_results(names_a, names_s, vals);
+    useFP   <- data@useFixedPoint;
+    fp_str  <- if (useFP) paste(data@fixedPoint[[1]][1],data@fixedPoint[[1]][2],sep=",") else "";
+    write_results(useFP, fp_str, names_a, names_s, vals);
 
     if (export_1animal_graphs)
-      draw_graphs_1animal (data@outputFolder,
+      draw_graphs_1animal (data@outputFolder, useFP, fp_str,
                               names_a, names_s, vals);
 
     stored_values[[i]] <- vals;
@@ -580,7 +584,7 @@ draw_graph_nvals <- function(
 }
 
 
-draw_graphs_1animal <- function(folder, animal_names, sheep_names, values)
+draw_graphs_1animal <- function(folder, useFP, fp_str, animal_names, sheep_names, values)
 {
 
   x_time_data <- values$"time";
@@ -617,23 +621,24 @@ draw_graphs_1animal <- function(folder, animal_names, sheep_names, values)
         , dim=c(num_animals, num_sheep));
 
 
-    browser()
-
   setPDFFolder ( folder );
 
-  # distances from the dog to the given fixed point
-  draw_graph_1val(num_animals,
-                         x_time_data=x_time_data,
-                         y_data=values$"a2fp_dist",
-                         x_hists_data=values$"a2fp_dist",
-                         main_directs=main_direct_1animal,
-                         x_axis_labels=axis_labels,
-                         x_axis_at=axis_dates,
-                         key_title_plot="graph_dist_fp",
-                         args_title_plot=c(allnames),
-                         key_title_hist="hist_dist_fp",
-                         args_title_hist=c(allnames)
-                         );
+  if (useFP)
+  {
+    # distances from the dog to the given fixed point
+    draw_graph_1val(num_animals,
+                           x_time_data=x_time_data,
+                           y_data=values$"a2fp_dist",
+                           x_hists_data=values$"a2fp_dist",
+                           main_directs=main_direct_1animal,
+                           x_axis_labels=axis_labels,
+                           x_axis_at=axis_dates,
+                           key_title_plot="graph_dist_fp",
+                           args_title_plot=c(allnames, fp_str),
+                           key_title_hist="hist_dist_fp",
+                           args_title_hist=c(allnames, fp_str)
+                           );
+  }
   # distances to the closest sheep
   draw_graph_1val(num_animals,
                          x_time_data=x_time_data,

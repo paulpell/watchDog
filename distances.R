@@ -429,7 +429,8 @@ collect_current_data <- function(button)
     if ( ! file_test ("-d", datasetOutputFolder) )
       stop("The output folder for the graph output does not exist");
 
-    fp <- if (check_useFixedPoint$active) get_fixed_point() else c(0,0);
+    useFP <- check_useFixedPoint$active;
+    fp <- if (useFP) get_fixed_point() else c(0,0);
 
     # include the data in the total data set
     animals_data_set@numEntries <<- animals_data_set@numEntries + 1;
@@ -439,6 +440,7 @@ collect_current_data <- function(button)
     animals_data_set@animalNames[[n]] <<- as.list(a_names);
     animals_data_set@sheepFiles[[n]] <<- sheep_filenames;
     animals_data_set@animalFiles[[n]] <<- animal_filenames;
+    animals_data_set@useFixedPoint[[n]] <<- useFP;
     animals_data_set@fixedPoint[[n]] <<- fp;
 
     # make the text to display for this data part
