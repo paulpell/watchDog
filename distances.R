@@ -7,66 +7,12 @@
 #   From a graphical interface, there must be a button, or an entry in a menu to do that.
 #
 
+
+########################################
+# BEGIN R SETUP ########################
+# 
 # first, clean the working environment, if an R session is reused
 rm ( list=ls(all=TRUE) )
-
-
-# settings for the language
-LANGS <- c(FR=1,DE=2);
-LANG <<- LANGS[["FR"]];
-
-#change the base working folder here
-base_folder <-
-  if ( .Platform$OS.type == "unix" ) "/tmp" else {
-      if ( .Platform$OS.type == "windows" ) Sys.getenv("TEMP");
-  }
-
-DATA_SEP = ";"; # symbol between values in input files
-
-RADIUS_EARTH <- 6371L; # km
-
-HISTOGRAM_CLASSES <<- 200;
-
-fixedPoint_north <- 0;
-fixedPoint_east <- 0;
-
-# the script does not take into account the moments where the dog is far from the sheep,
-# for alignment, in_front and these things.
-# This value (FILTER_DIST) is the max distance. 10km will take everything into account, probably
-#FILTER_DIST <- 0.03; # 30 meters
-FILTER_DIST <<- 0.05; # 0.050 kilometers, takes everything into account!
-
-#### this object is very important: we use it to collect the data
-#### about the animals (animal name, filepath)
-#### We define it before sourcing analysis.R
-AnimalsDataSet <-
-  setClass ("AnimalsDataSet",
-            slots=c(
-                numEntries="numeric", # number of entries
-                numSheep="numeric",
-                numAnimals="numeric",
-                outputFolder="character", # vector of single names
-                sheepNames="list", # list of vectors
-                sheepFiles="list", # list of vectors
-                animalNames="list", # list of vectors
-                animalFiles="list", # list of vectors
-                fixedPoint="list"
-            ));
-
-extractAnimalData <- function (x, i)
-{
-  AnimalsDataSet(
-    numEntries=length(i),
-    numSheep=x@numSheep,
-    numAnimals=x@numAnimals,
-    outputFolder=x@outputFolder[i],
-    sheepNames=x@sheepNames[i],
-    sheepFiles=x@sheepFiles[i],
-    animalNames=x@animalNames[i],
-    animalFiles=x@animalFiles[i],
-    fixedPoint=x@fixedPoint[i]);
-}
-
 # we use this to find where this file is located in the file system,
 # and load the file given as arg from the same path
   # this seems to be tricky: you NEED!! to SOURCE the file, not run it line by line
@@ -89,6 +35,67 @@ source_file("translate.R")
 
 # if this fails, you need to install the RGtk2 package, available at:
 library("RGtk2");
+#
+#
+# END R SETUP ########################
+########################################
+
+
+
+# define constants
+DATA_SEP = ";"; # symbol between values in input files
+RADIUS_EARTH <- 6371L; # km
+HISTOGRAM_CLASSES <<- 200; # `how many columns in one histogram?'
+LANGS <- c(FR=1,DE=2); # indexes for language
+LANG <<- LANGS[["FR"]]; # used in translate.R
+FILTER_DIST <<- 0.05; # km; for coordination value, use only when animal closer than that
+
+# This folder is where we output the comparison (several data sets together) graphs
+comparisonOutputFolder <-
+  if ( .Platform$OS.type == "unix" ) "/tmp/" else {
+      if ( .Platform$OS.type == "windows" )
+        paste(Sys.getenv("TEMP"),.Platform$file.sep,sep="");
+  }
+
+datasetOutputFolder <- ".";
+
+
+useFixedPoint <- FALSE;
+fixedPoint_north <- 0;
+fixedPoint_east <- 0;
+
+#### this object is very important: we use it to collect the data
+#### about the animals (animal name, filepath)
+#### We define it before sourcing analysis.R
+AnimalsDataSet <-
+  setClass ("AnimalsDataSet",
+            slots=c(
+                numEntries="numeric", # number of entries
+                numSheep="numeric", # constant over experiments
+                numAnimals="numeric", # same
+                outputFolder="character", # vector of single names
+                sheepNames="list", # list of vectors
+                sheepFiles="list", # list of vectors
+                animalNames="list", # list of vectors
+                animalFiles="list", # list of vectors
+                useFixedPoint="logical", # vector for each data set
+                fixedPoint="list" # for each data set: c(N,E)
+            ));
+
+extractAnimalData <- function (x, i)
+{
+  AnimalsDataSet(
+    numEntries=length(i),
+    numSheep=x@numSheep,
+    numAnimals=x@numAnimals,
+    outputFolder=x@outputFolder[i],
+    sheepNames=x@sheepNames[i],
+    sheepFiles=x@sheepFiles[i],
+    animalNames=x@animalNames[i],
+    animalFiles=x@animalFiles[i],
+    useFixedPoint=x@useFixedPoint[i],
+    fixedPoint=x@fixedPoint[i]);
+}
 
 
 MAX_ANIMALS <- 5;
@@ -118,25 +125,33 @@ temp_dog_data <- list (
         paste(tmpdir,"mouton3.txt", sep="")
       )
     ),
+    c(
+      TRUE
+    ),
     list( # fixed points
       c(0,0)
     )
 );
-animals_data_set <- AnimalsDataSet(
-        numEntries=1,
-        numAnimals=2,
-        numSheep=2,
-        animalNames=temp_dog_data[[1]],
-        sheepNames=temp_dog_data[[2]],
-        outputFolder=temp_dog_data[[3]],
-        animalFiles=temp_dog_data[[4]],
-        sheepFiles=temp_dog_data[[5]],
-        fixedPoint=temp_dog_data[[6]]
-        );
-#animals_data_set <- AnimalsDataSet(numEntries=0);
+
+#itinialize the data with an empty data set
+animals_data_set <- AnimalsDataSet(numEntries=0);
+
+# Initialize with the debug data above
+#animals_data_set <- AnimalsDataSet(
+#        numEntries    =1,
+#        numAnimals    =2,
+#        numSheep      =2,
+#        animalNames   =temp_dog_data[[1]],
+#        sheepNames    =temp_dog_data[[2]],
+#        outputFolder  =temp_dog_data[[3]],
+#        animalFiles   =temp_dog_data[[4]],
+#        sheepFiles    =temp_dog_data[[5]],
+#        useFixedPoint =temp_dog_data[[6]],
+#        fixedPoint    =temp_dog_data[[7]]
+#        );
 
 # when the user chooses a first file from a folder, we then propose that folder
-fastFolder <- base_folder;
+fastFolder <- ".";
 
 ######################################################################
 # graphical interface objects, from which we read the values
@@ -156,11 +171,12 @@ histClassesEntry$setText(as.character(HISTOGRAM_CLASSES));
 filterDistEntry <- gtkEntry();
 filterDistEntry$setText(as.character(FILTER_DIST));
 # label for the folder where the comparison CSV file and graphs are output
-labelOutputFolder <- gtkLabel(base_folder);
+#labelComparisonOutputFolder <- gtkLabel(base_folder);
+labelComparisonOutputFolder <- gtkLabel(comparisonOutputFolder);
 # two check boxes for the graph export options
-checkBox_exp_1animal_graphs <- gtkCheckButton(label="Export graphs for each data set", show=T);
+checkBox_exp_1animal_graphs <- gtkCheckButton(label="Export graphs for each data set");
 checkBox_exp_1animal_graphs$active <- TRUE;
-checkBox_exp_allanimals_graphs <- gtkCheckButton(label="Export comparison graphs", show=T);
+checkBox_exp_allanimals_graphs <- gtkCheckButton(label="Export comparison graphs");
 checkBox_exp_allanimals_graphs$active <- FALSE;
 checkBox_exp_allanimals_graphs$sensitive <- FALSE;
 # choose the language
@@ -180,7 +196,10 @@ sheep_filenameLabels <- Map ( function(i){gtkLabel("??")}, 1:MAX_ANIMALS);
 # the entries to choose the name for each animal and sheep
 animal_nameEntries <- Map ( function(i){gtkEntry()}, 1:MAX_ANIMALS);
 sheep_nameEntries <- Map ( function(i){gtkEntry()}, 1:MAX_ANIMALS);
+# text displaying the `fastFolder', can be changed
+label_datasetOutputFolder <- gtkLabel();
 # 2 text entries for the fixed point: North, East
+check_useFixedPoint <- gtkCheckButton(label="Use fixed point:");
 entryFPN <- gtkEntry();
 entryFPE <- gtkEntry();
 # display the current data set
@@ -191,6 +210,24 @@ addButtonHandler <- function (but, handler, data=NULL)
 {
   gSignalConnect (but, "pressed", handler, data=data);
   gSignalConnect (but, "activate", handler, data=data);
+}
+
+# save the given folder, and arrange to display in label_dataset (short name)
+# give 2nd arg FALSE for comparison
+updateOutputFolder <- function (folder, is_datasetFolder)
+{
+  if ( is_datasetFolder )
+    datasetOutputFolder <<- folder
+  else
+    comparisonOutputFolder <<- folder;
+
+  l <- nchar(folder);
+  n_max <- 30;
+  if (l > n_max) folder <- paste("...", substr(folder, l-n_max+1, l), sep="");
+  if ( is_datasetFolder )
+    label_datasetOutputFolder$setText(folder)
+  else
+    labelComparisonOutputFolder$setText(folder);
 }
 
 #user.data is: c(bool_is_animal, num) (bool is false for sheep)
@@ -214,7 +251,9 @@ choose_data_file <- function (button, user.data)
   {
     f <- d$getFilename();
     disp_fname <- substr(basename(f), 1, 15) # maximum 15 characters displayed
-    fastFolder <<- dirname(f);
+    fastFolder <<- make_folder_path (dirname(f));
+    dataoutFolder <- label_datasetOutputFolder$getText();
+    if ( "" == dataoutFolder ) updateOutputFolder(fastFolder, TRUE);
     is_an <- user.data[1];
     num <- user.data[2];
     if (is_an)
@@ -236,9 +275,17 @@ filter_dir_f <- function (f)
   return(file_test("-d",f$filename));
 }
 
-choose_base_folder <- function(button, data)
+make_folder_path <- function (f)
 {
-  d <- gtkFileChooserDialog(title="Choose a directory", flags="destroy-with-parent", parent=window, action="select-folder",
+  pattern <- paste("([^",.Platform$file.sep,"])$", sep=""); # "([^/])$": anything but a / before end of line
+  repl <- paste("\\1",.Platform$file.sep, sep=""); # replace with last char matched
+  sub (pattern, repl, f, perl=TRUE);
+}
+
+# is_datasetFolder: TRUE for dataset output folder, FALSE if we choose base folder
+choose_folder <- function(button, is_datasetFolder)
+{
+  d <- gtkFileChooserDialog(title="Choose a directory", parent=window, action="select-folder",
                             "gtk-cancel", GtkResponseType["cancel"],
                             "gtk-open", GtkResponseType["accept"]);
   filter <-  gtkFileFilter();
@@ -246,7 +293,10 @@ choose_base_folder <- function(button, data)
   gtkFileChooserAddFilter(d, filter);
   v <- d$run();
   if (v == GtkResponseType["accept"])
-    labelOutputFolder$setText(d$getFilename());
+  {
+    f <- make_folder_path (d$getFilename());
+    updateOutputFolder (f, is_datasetFolder);
+  }
   d$destroy();
 }
 
@@ -268,14 +318,22 @@ get_histClasses <- function()
   histClasses <- as.numeric(hC);
   if (is.na(histClasses))
   {
-    errMsg <- paste("Nombre classes histogrammes invalid: \""
-                    ,hC,"\", valeur utilisee: ", HISTOGRAM_CLASSES,"\n", sep="");
+    errMsg <- paste("Invalid number of histogram classes: \""
+                    ,hC,"\", using: ", HISTOGRAM_CLASSES,"\n", sep="");
     histClassesEntry$setText(as.character(HISTOGRAM_CLASSES));
     stop (errMsg);
   } else {
     return (histClasses);
   }
 }
+
+update_FPAvailable <- function (but)
+{
+  useFP <- ! but$active; # this call happens before state changed
+  entryFPN$setSensitive(useFP);
+  entryFPE$setSensitive(useFP);
+}
+
 # obtain the value of the filter distance in the user interface
 get_filterDist <- function()
 {    
@@ -283,8 +341,8 @@ get_filterDist <- function()
   distFilter <- as.numeric(dF);
   if (is.na(distFilter))
   {
-    errMsg <- paste(errMsg, "Distance de filtre invalide: \""
-                     ,dF,"\", valeur utilisee: ", FILTER_DIST,"\n", sep="");
+    errMsg <- paste(errMsg, "Invalid filter distance: \""
+                     ,dF,"\", using: ", FILTER_DIST,"\n", sep="");
     filterDistEntry$setText(as.character(FILTER_DIST));
     stop (errMsg);
   } else {
@@ -294,12 +352,12 @@ get_filterDist <- function()
 # find the output folder, and validate it
 get_baseFolder <- function()
 {
-  bf_text <- labelOutputFolder$getText();
+  bf_text <- labelComparisonOutputFolder$getText();
   bf <- paste(bf_text, .Platform$file.sep, sep="");
   if (bf == "")
-    stop ("Pas de dossier de sortie choisi!")
+    stop ("No output folder for the comparison data was chosen")
   else if (!file_test("-d", bf))
-    stop ("Le dossier de sortie n'existe pas!");
+    stop (paste("The output folder for the comparison data(",bf,") does not exist!", sep=""));
   return (bf);
 }
 
@@ -332,8 +390,13 @@ reset_temp_data <- function()
   for ( l in sheep_filenameLabels ) l$setText("??");
   for ( e in animal_nameEntries ) e$setText("");
   for ( e in sheep_nameEntries ) e$setText("");
-  entryFPN$setText("0");
-  entryFPE$setText("0");
+  if ( check_useFixedPoint$active )
+  {
+    entryFPN$setText("0");
+    entryFPE$setText("0");
+  }
+  datasetOutputFolder <- ".";
+  label_datasetOutputFolder$setText("");
 }
 
 get_fixed_point <- function()
@@ -363,12 +426,15 @@ collect_current_data <- function(button)
     a_names <- get_names (TRUE);
     s_names <- get_names (FALSE);
 
-    fp <- get_fixed_point();
+    if ( ! file_test ("-d", datasetOutputFolder) )
+      stop("The output folder for the graph output does not exist");
+
+    fp <- if (check_useFixedPoint$active) get_fixed_point() else c(0,0);
 
     # include the data in the total data set
     animals_data_set@numEntries <<- animals_data_set@numEntries + 1;
     n <- animals_data_set@numEntries;
-    animals_data_set@outputFolder[[n]] <<- fastFolder;
+    animals_data_set@outputFolder[[n]] <<- datasetOutputFolder;
     animals_data_set@sheepNames[[n]] <<- as.list(s_names);
     animals_data_set@animalNames[[n]] <<- as.list(a_names);
     animals_data_set@sheepFiles[[n]] <<- sheep_filenames;
@@ -389,7 +455,16 @@ collect_current_data <- function(button)
     entry <- paste(entry, s_names[ls], ")", sep="");
     entry <- paste(entry, "=>", basename(fastFolder));
 
-    text <- paste (data_setLabel$getText(), entry, sep="\n");
+    spl <- strsplit(data_setLabel$getText(), "\n")[[1]];
+    spl <- grep ( "^$", spl, invert=T, value=T);
+    text <- if ( length(spl) > 0 )
+    {
+      pre <- paste( spl, sep="\n" );
+      paste (pre, entry, sep="\n");
+    } else {
+      entry;
+    }
+    if ( n < 4 ) for (i in n:3) text <- paste(text, "\n"); # add newlines to have min. 4 lines
     data_setLabel$setText(text);
 
     reset_temp_data();
@@ -405,18 +480,23 @@ collect_current_data <- function(button)
 # user.data = c(num_test_animals, num_sheep)
 startStuff <- function (button)
 {
-  tryCatch(
+  tryCatch( # in case of error, give bad message
     {
       if (animals_data_set@numEntries == 0)
         stop("No data to analyse!");
       HISTOGRAM_CLASSES <<- get_histClasses();
       FILTER_DIST <<- get_filterDist();
       LANG <<- comboLangs$active + 1;
-      base_folder <- get_baseFolder();
+      comparisonOutputFolder <- get_baseFolder();
       export_1animal_graph <- checkBox_exp_1animal_graphs$active;
       export_allanimals_graph <- checkBox_exp_allanimals_graphs$active;
 
-      start_analysis (animals_data_set ,base_folder,export_1animal_graph,export_allanimals_graph);
+      start_analysis (
+            animals_data_set,
+            comparisonOutputFolder,
+            export_1animal_graph,
+            export_allanimals_graph
+            );
     },
     error = function(e)
     {
@@ -435,10 +515,10 @@ create_general_options <- function (box)
   hboxOutputFolder <- gtkHBox(F, 10);
   box$packStart(hboxOutputFolder, F, F, 3);
   hboxOutputFolder$packStart(gtkLabel("Output folder:"), F, F, 3);
-  hboxOutputFolder$packStart(labelOutputFolder, F, F, 3);
+  hboxOutputFolder$packStart(labelComparisonOutputFolder, F, F, 3);
   baseFolderButton <- gtkButton("Choose...");
   hboxOutputFolder$packEnd(baseFolderButton, F, F, 10);
-  addButtonHandler(baseFolderButton, choose_base_folder);
+  addButtonHandler(baseFolderButton, choose_folder, FALSE);
 
   hboxExpGraphs <- gtkHBox ( T, 10 );
   box$packStart(hboxExpGraphs, F, F, 3);
@@ -454,7 +534,7 @@ create_general_options <- function (box)
   
   hboxSettings <- gtkHBox(F, 10);
   box$packStart(hboxSettings, F, F, 3);
-  labelHist <- gtkLabel("Number histogram classes:");
+  labelHist <- gtkLabel("Number of histogram classes:");
   hboxSettings$packStart(labelHist, F, F, 3);
   hboxSettings$packEnd(histClassesEntry, F, F, 3);
   histClassesEntry$setWidthChars(7);
@@ -492,7 +572,9 @@ show_data_choice <- function(b, user.data=NULL)
 # give isAnimal = TRUE tfor test animal; FALSE for sheep
 make_choose_file_button <- function (isAnimal, num)
 {
-  b <- gtkButtonNewWithLabel("browse..");
+  b <- gtkButtonNew();
+  icon <- gtkImageNewFromIconName("gtk-file", GtkIconSize["button"]);
+  b$setImage(icon);
   user.data <- c(isAnimal, num);
   addButtonHandler (b, choose_data_file, user.data);
   return (b);
@@ -559,32 +641,48 @@ create_data_choice_box <- function()
   hboxDataInput$packStart (vboxAnimals, expand=T, fill=T);
   hboxDataInput$packStart (gtkVSeparator(), expand=F, fill=F, padding=3);
   hboxDataInput$packStart (vboxSheep, expand=T, fill=T);
+  vboxAll$packStart (hboxDataInput, expand=T, fill=F);
+  # little separation line
+  vboxAll$packStart (gtkHSeparator(), expand=F, fill=F);
 
-  vboxAll$packStart (hboxDataInput, expand=T, fill=F, padding=13);
-
+  # Use fixed point?
   hboxFPInput <- gtkHBox(spacing=3);
   entryFPN$setWidthChars(9);entryFPE$setWidthChars(9);
   entryFPN$setText("0.0");entryFPE$setText("0.0");
-  hboxFPInput$packStart (gtkLabel("Fixed point:"), expand=F, fill=F, padding=13);
-  hboxFPInput$packEnd (entryFPE, expand=F,fill=F);
-  hboxFPInput$packEnd (gtkLabel("East"), expand=F, fill=F);
-  hboxFPInput$packEnd (entryFPN, expand=F,fill=F);
-  hboxFPInput$packEnd (gtkLabel("North"), expand=F, fill=F);
-
-  vboxAll$packStart (hboxFPInput, expand=T, fill=F, padding=7);
+  hboxFPInput$packStart(check_useFixedPoint, expand=T, fill=F);
+  addButtonHandler (check_useFixedPoint, update_FPAvailable);
+  hboxFPInput$packEnd(entryFPE, expand=F, fill=F);
+  hboxFPInput$packEnd(entryFPN, expand=F, fill=F);
+  entryFPN$setSensitive(FALSE);
+  entryFPE$setSensitive(FALSE);
+  hboxFPInput$packEnd(gtkLabel("(N,E):"), expand=F, fill=F);
+  vboxAll$packStart (hboxFPInput, expand=T, fill=F);
 
   # button to add this set of files to the data to analyse
-  button_add <- gtkButtonNewWithLabel("Add this data set");
   hbox <- gtkHBox();
-  hbox$packStart (button_add, expand=T, fill=F, padding=5);
+  hbox$packStart(gtkLabel("Out folder:"), expand=T, fill=F, padding=1);
+  button_browseOutFolder <- gtkButtonNew();
+  addButtonHandler (button_browseOutFolder, choose_folder, TRUE);
+  icon <- gtkImageNewFromIconName("gtk-directory", GtkIconSize["button"]);
+  button_browseOutFolder$setImage(icon);
+  hbox$packEnd (button_browseOutFolder, expand=F, fill=F);
+  hbox$packEnd(label_datasetOutputFolder, expand=F, fill=F, padding=1);
   vboxAll$packStart (hbox, expand=T, fill=F, padding=5);
+
+  hbox <- gtkHBox();
+  button_add <- gtkButtonNewWithLabel("Add this data set");
   addButtonHandler (button_add, collect_current_data);
+  icon <- gtkImageNewFromIconName("gtk-go-forward-ltr", GtkIconSize["button"]);
+  button_add$setImage(icon);
+  hbox$packStart (button_add, expand=T, fill=F);
+  vboxAll$packStart (hbox, expand=T, fill=F, padding=5);
 
   vboxAll$packStart (gtkHSeparator(), expand=T, fill=F);
 
 
   vboxAll$packStart (gtkLabel("Chosen data:"), expand=T, fill=T)
   vboxAll$packStart (data_setLabel, expand=T, fill=T);
+  data_setLabel$setText("\n\n\n\n");
 
 
   vboxAll$packStart (gtkHSeparator(), expand=T, fill=F);

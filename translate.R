@@ -191,9 +191,3 @@ get_translation <- function(text, args = c())
   return (trans);
 }
 
-get_trans_filename <- function(text, args=c())
-{
-  trans <- get_translation(text, args);
-  fname <- gsub("\\s+", "_", trans);
-  return(fname);
-}

@@ -157,10 +157,10 @@ makePlot <- function
   (
     x,
     y,
-    name_transl_key,
-    name_transl_args=c(),
-    main_transl_key=name_transl_key,
-    main_transl_args=name_transl_args,
+    transl_key,
+    transl_args=c(),
+    #main_transl_key=name_transl_key,
+    #main_transl_args=name_transl_args,
     pdf_width=DEFAULT_PDF_WIDTH,
     pdf_height=DEFAULT_PDF_HEIGHT,
     xlab=DEFAULT_PLOT_X_LAB,
@@ -173,11 +173,14 @@ makePlot <- function
     custom_datetime_labels_at=NULL
   )
 {
-  filename <- get_trans_filename(name_transl_key, name_transl_args);
+  #filename <- get_trans_filename(name_transl_key, name_transl_args);
+  filename <- get_translation(transl_key, transl_args);
   startPDF ( filename, w=pdf_width, h=pdf_height );
 
-  justPlot( x=x, y=y, main_transl_key=main_transl_key,
-            main_transl_args=main_transl_args,
+  #justPlot( x=x, y=y, main_transl_key=main_transl_key,
+  #          main_transl_args=main_transl_args,
+  justPlot( x=x, y=y, main_transl_key=transl_key,
+            main_transl_args=transl_args,
             xlab=xlab, ylab=ylab,
             type=type, ylim=ylim, col=col, extraFn=extraFn,
             custom_datetime_labels=custom_datetime_labels,

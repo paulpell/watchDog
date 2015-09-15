@@ -464,7 +464,7 @@ start_analysis <- function (
 
   for ( i in 1:animals_data@numEntries )
   {
-    writeLines(paste("\n\n\nStarting analysis of animal ", i));
+    writeLines(paste("\n\n\nStarting analysis with data set", i));
     data <-  extractAnimalData(animals_data, i);
     vals <- analyse_one_animal (data);
     names_a <- data@animalNames[[1]];
@@ -472,8 +472,8 @@ start_analysis <- function (
     write_results(names_a, names_s, vals);
 
     if (export_1animal_graphs)
-      draw_graphs_1animal (data@outputFolder[i]
-                            , names_a, names_s, vals);
+      draw_graphs_1animal (data@outputFolder,
+                              names_a, names_s, vals);
 
     stored_values[[i]] <- vals;
   }
@@ -506,7 +506,7 @@ draw_graph_1val <- function (num_animals,
   mfrow <- c( num_animals , 1 );# one column, n rows
   if ( ! is.null(x_time_data) )
   {
-    filename <- get_trans_filename(key_filename_plot, args_filename_plot);
+    filename <- get_translation(key_filename_plot, args_filename_plot);
     startPDF(name=filename, mfrow=mfrow);
     title <- get_translation(key_title_plot, args_title_plot);
     preparePDFTitle(title=title);
@@ -523,7 +523,7 @@ draw_graph_1val <- function (num_animals,
   }
   if ( ! is.null (x_hists_data) )
   {
-    filename <- get_trans_filename(key_filename_hist, args_filename_hist);
+    filename <- get_translation(key_filename_hist, args_filename_hist);
     startPDF(name=filename, mfrow=mfrow);
     title <- get_translation(key_title_hist, args_title_hist);
     preparePDFTitle(title=title);
@@ -552,7 +552,7 @@ draw_graph_nvals <- function(
                        )
 {
   mfrow <- c( num_animals , 1 );# one column, n rows
-  filename <- get_trans_filename(key_filename, args_filename);
+  filename <- get_translation(key_filename, args_filename);
   startPDF(name=filename, mfrow=mfrow);
   title <- get_translation(key_title, args_title);
   preparePDFTitle(title=title);
@@ -601,7 +601,7 @@ draw_graphs_1animal <- function(folder, animal_names, sheep_names, values)
   # When there is only one animal, no special main: It is in the
   # title already
   allnames               <- animal_names[1]
-  main_direct_1animal    <- c();
+  main_direct_1animal    <- c("");
   if (num_animals > 1)
   {
     main_direct_1animal <- animal_names;
@@ -617,14 +617,15 @@ draw_graphs_1animal <- function(folder, animal_names, sheep_names, values)
         , dim=c(num_animals, num_sheep));
 
 
+    browser()
+
   setPDFFolder ( folder );
 
   # distances from the dog to the given fixed point
-  vals <- values$"a2fp_dist";
   draw_graph_1val(num_animals,
                          x_time_data=x_time_data,
-                         y_data=vals,
-                         x_hists_data=vals,
+                         y_data=values$"a2fp_dist",
+                         x_hists_data=values$"a2fp_dist",
                          main_directs=main_direct_1animal,
                          x_axis_labels=axis_labels,
                          x_axis_at=axis_dates,
@@ -681,8 +682,6 @@ draw_graphs_1animal <- function(folder, animal_names, sheep_names, values)
                          args_title_plot=c(allnames),
                          ylim=c(0,1)
                          );
-     browser()
-
   # Distances dog to all sheep
   draw_graph_nvals(num_animals,
                          x_time_data,
@@ -751,7 +750,7 @@ draw_graphs_1animal <- function(folder, animal_names, sheep_names, values)
   key <- "graph_hist_coord_both_sheep";
   args <- c(allnames);
   ylim <- c(-max_freq, max_freq);
-  filename <- get_trans_filename (key, args);
+  filename <- get_translation (key, args);
   title <- get_translation (key, args);
   cols <- list("red","blue","yellow","green");
 
@@ -1480,7 +1479,7 @@ draw_graphs_1dog <- function(folder, dog_name, fp_str, x_time_data, norms_c_fp, 
   # distances from the dog to the given fixed point
   key <- "graph_dist_fp";
   args <- c(dog_name, fp_str);
-  makePlot( x=x_time_data, y=norms_c_fp, name_transl_key=key, name_transl_args=args,
+  makePlot( x=x_time_data, y=norms_c_fp, transl_key=key, transl_args=args,
                   custom_datetime_labels=axis_labels, custom_datetime_labels_at=axis_dates);
 
   
@@ -1492,13 +1491,13 @@ draw_graphs_1dog <- function(folder, dog_name, fp_str, x_time_data, norms_c_fp, 
   # distances to the closest sheep
   key <- "graph_closest";
   args <- c(dog_name);
-  makePlot( x=x_time_data, y=dist_c_closest, name_transl_key=key, name_transl_args=args,
+  makePlot( x=x_time_data, y=dist_c_closest, transl_key=key, transl_args=args,
                   custom_datetime_labels=axis_labels, custom_datetime_labels_at=axis_dates );
   
   # normalised distance dog-sheep mouton le plus proche
   key <- "graph_closest_norm";
   args <- c(dog_name);
-  makePlot ( x=x_time_data, y=dist_c_closest, name_transl_key=key, name_transl_args=args, ylim=c(0,1),
+  makePlot ( x=x_time_data, y=dist_c_closest, transl_key=key, transl_args=args, ylim=c(0,1),
                   custom_datetime_labels=axis_labels, custom_datetime_labels_at=axis_dates);
    
   # histogram of the distances dog-sheep mouton le plus proche
@@ -1509,13 +1508,13 @@ draw_graphs_1dog <- function(folder, dog_name, fp_str, x_time_data, norms_c_fp, 
   # distance dog-sheep ? la position moyenne du mouton
   key <- "graph_dist_mean";
   args <- c(dog_name);
-  makePlot( x=x_time_data, y=dist_c_m, name_transl_key=key, name_transl_args=args,
+  makePlot( x=x_time_data, y=dist_c_m, transl_key=key, transl_args=args,
                   custom_datetime_labels=axis_labels, custom_datetime_labels_at=axis_dates);
   
   # normalised distance dog-sheep ? la position moyenne du mouton
   key <- "graph_dist_mean_norm";
   args <- c(dog_name);
-  makePlot( x=x_time_data, y=dist_c_m, name_transl_key=key, name_transl_args=args, ylim=c(0,1),
+  makePlot( x=x_time_data, y=dist_c_m, transl_key=key, transl_args=args, ylim=c(0,1),
                   custom_datetime_labels=axis_labels, custom_datetime_labels_at=axis_dates);
     
   # histogram of the distances dog-sheep ? la position moyenne du mouton
@@ -1532,7 +1531,7 @@ draw_graphs_1dog <- function(folder, dog_name, fp_str, x_time_data, norms_c_fp, 
   {
     lines(x_time_data, data_m2[,1], type='l', col='green', xaxt='n');
   }
-  makePlot ( x=x_time_data, y=data_m1[,1], name_transl_key=key, name_transl_args=args, col="blue", extraFn=extraFn,
+  makePlot ( x=x_time_data, y=data_m1[,1], transl_key=key, transl_args=args, col="blue", extraFn=extraFn,
                   custom_datetime_labels=axis_labels, custom_datetime_labels_at=axis_dates );
 
 
