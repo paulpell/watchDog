@@ -17,6 +17,7 @@ removeUTFBOM <- function(filename)
   }
   file.create(new_filename);
   
+  # now copy over to the new file
   n = 1024;
   vec <- c(1);
   conRead <- file(description=filename, open="rb", raw=TRUE);
@@ -37,40 +38,6 @@ removeUTFBOM <- function(filename)
   return(new_filename);
 }
 
-# take values only from max start timestamp to min end timestamp
-sanitize <- function(dc, dm1, dm2)
-{
-  # find the biggest starting timestamp
-  time_start <- max(dc[1,2], dm1[1,2], dm2[1,2]);
-  # find the smallest ending timestamp
-  time_stop <- min(dc[length(dc[,1]),2], dm1[length(dm1[,1]),2], dm2[length(dm2[,1]),2]);
-  # return the values between the start and stop timestamps
-  return (
-    list(
-      as.data.frame(dc [dc$Timestamp  >= time_start & dc$Timestamp  <= time_stop, ]),
-      as.data.frame(dm1[dm1$Timestamp >= time_start & dm1$Timestamp <= time_stop, ]),
-      as.data.frame(dm2[dm2$Timestamp >= time_start & dm2$Timestamp <= time_stop, ])
-    ));
-}
-
-# uses 3 file names (dog, sheep1, sheep2) and returns the data
-read_files <- function (file_c, file_m1, file_m2)
-{
-  file_c2 <- removeUTFBOM(file_c);
-  file_m12 <- removeUTFBOM(file_m1);
-  file_m22 <- removeUTFBOM(file_m2);
-  tmp <- sanitize(
-    read.csv(file=file_c2,  sep=DATA_SEP, row.names=NULL),
-    read.csv(file=file_m12, sep=DATA_SEP, row.names=NULL),
-    read.csv(file=file_m22, sep=DATA_SEP, row.names=NULL)
-  );
-  
-  file.remove(file_c2);
-  file.remove(file_m12);
-  file.remove(file_m22);
-  
-  return(tmp);
-}
 
 read_file <- function (file)
 {
@@ -157,7 +124,7 @@ unify_timestamp <- function (d1, d2)
   return (list(d1[r1,], d2[r2,]));
 }
 
-# remove NaN values for the sums and means
+# check, remove, count, test existence of NaN values
 f_no_nan <- function(x) !is.nan(x);
 filter_no_nan <- function(x) return (Filter(f_no_nan, x));
 len_no_nan <- function (x) return (length(filter_no_nan(x)));
@@ -165,18 +132,12 @@ f_has_no_nan <- function (x) return (len_no_nan(x)>0);
 
 # says if a value is bigger than 0
 f_pos <- function(x) x > 0;
-
 # says if a value is smaller than 0
 f_neg <- function(x) x < 0;
 
-# given one vector, remove the duplicated timestamps
-remove_duplicates_timestamp <- function(data)
-{
-  if (is.null(data$timestamp))
-    return (data);
-  return (data[!duplicated(data$timestamp), ]);
-}
 
+# Using the data for 1 test data set, computes all the metrics,
+# such as displacement, distance between animals, etc.
 analyse_one_animal <- function (animal_data, export_graphs)
 {
   # take the data
@@ -273,7 +234,7 @@ analyse_one_animal <- function (animal_data, export_graphs)
             ncols <- length(a2s_d);
             nrows <- length(a2s_d[[1]]); #[[1]] must exist
             arr <- array ( unlist (a2s_d), dim=c(nrows, ncols));
-            dist_to_middle  <- apply ( arr, 1, mean); # ... then we take the mean in each row (=mean of all sheep at given timestamp) ...
+            dist_to_middle  <- apply ( arr, 1, mean); # ... then we take the mean in each row (=mean of dist to all sheep) ...
             dist_to_closest <- apply ( arr, 1, min);  # ... and also the minimum in each row.
             list(dist_to_middle, dist_to_closest);
           }
