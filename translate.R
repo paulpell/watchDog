@@ -22,6 +22,10 @@ LANGUAGES$mean_dist_middle <- c("Distance moyenne entre le chien et le milieu de
                                 "Durchschnittliche Distanz zwischen den Hund und die Mitte der Schafe: ^1km");
 LANGUAGES$median_dist_middle <- c("Distance medianne entre le chien et le milieu des moutons: ^1km",
                                 "Median der Distanzen zwischen den Hund und die Mitte der Schafe: ^1km");
+LANGUAGES$mean_dist_mean <- c("Moyenne des distances moyennes entre l'animal et les moutons: ^1km",
+                                "Durchschnitt der durschnittlichen Distanzen zwischen den Hund und die Schafe: ^1km");
+LANGUAGES$median_dist_mean <- c("Medianne des distances moyennes entre l'animal et les moutons: ^1km",
+                                "Median der durchschnittlichen Distanzen zwischen den Hund und die Schafe: ^1km");
 LANGUAGES$dog_in_front1000 <- c("Chien est devant le mouton, en moyenne (x1000): ^1",
                                   "Hund ist durschnittlich vor dem Schaf (x1000): ^1");
 LANGUAGES$dog_in_front1000_i <- c("Chien est devant le mouton ^1, en moyenne (x1000): ^2",
@@ -93,13 +97,13 @@ LANGUAGES$graph_closest_norm <- c("Distances ^1 au mouton le plus proche, normal
 LANGUAGES$hist_closest <- c("Histogramme des distances ^1 au mouton le plus proche",
                                         "Distanzhistogramm ^1 zum naechsten Schaf");
 
-LANGUAGES$graph_dist_mean <- c("Distances ^1 a la moyenne des moutons",
+LANGUAGES$graph_dist_middle <- c("Distances ^1 au milieu des moutons",
                                "Distanzen ^1 zur Mitte der Schaf");
 
-LANGUAGES$graph_dist_mean_norm <- c("Distances ^1 a la moyenne des moutons, normalisees sur 1 km",
+LANGUAGES$graph_dist_middle_norm <- c("Distances ^1 au milieu des moutons, normalisees sur 1 km",
                                     "Distanzen ^1 zur Mitte der Schafe, auf 1km normiert");
 
-LANGUAGES$graph_hist_dist_mean <- c("Histogramme distances ^1 a la moyenne des moutons",
+LANGUAGES$graph_hist_dist_middle <- c("Histogramme distances ^1 au milieu des moutons",
                                     "Distanzhistogramm ^1 zum Mittelpunkt der Schafe");
 
 LANGUAGES$graph_dist_both_sheep <- c("Distances ^1 aux moutons",

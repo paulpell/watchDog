@@ -150,6 +150,8 @@ analyse_one_animal <- function (animal_data, export_graphs)
   useFP         <- animal_data@useFixedPoint;
   
 
+writeLines("Reading data files...");
+
   # prepare the data for the test animals and the sheep
   animals_data <- Map ( function(x) read_file(x),   files_animals );
   sheep_data  <- Map ( function(x) read_file(x), files_sheep );
@@ -160,9 +162,14 @@ analyse_one_animal <- function (animal_data, export_graphs)
   test_min_tstamp  <- unique(min_tstamps);
   test_max_tstamp  <- unique(max_tstamps);
   if ( length (test_min_tstamp) > 1 )
-    warning("All animals do not have the same start timestamp!");
+    stop("All animals do not have the same start timestamp!");
   if ( length (test_max_tstamp) > 1 )
-    warning("All animals do not have the same end timestamp!");
+    stop("All animals do not have the same end timestamp!");
+  num_samples <- unique ( Map ( function (x) length(x[,"Timestamp"]), c(animals_data, sheep_data)) );
+  if ( length (num_samples) > 1 )
+    stop("All animals do not have the same number of samples!");
+  num_samples <- num_samples[[1]];
+
 
   # Prepare the time data as time sequence
   datetime_input_format <-
@@ -179,6 +186,8 @@ analyse_one_animal <- function (animal_data, export_graphs)
 
 
 
+writeLines("Calculating positions....");
+
   # now prepare the values
   # xx_pos is the 3D position in space, from (long,lat), as a point
   # xx_dx is the displacement from the previous position in 3D space, as a vector
@@ -186,6 +195,8 @@ analyse_one_animal <- function (animal_data, export_graphs)
   animals_dx   <- Map ( function(x) compute_dx(x),  animals_pos );
   sheep_pos    <- Map ( function(x) compute_pos(x), sheep_data );
   sheep_dx     <- Map ( function(x) compute_dx(x),  sheep_pos );
+  # sum up all the sheep positions and divide by number of sheep to find middle point
+  sheep_middle_pos <- Reduce ( function(acc,s_pos) acc + s_pos, sheep_pos ) / num_sheep;
 
   if (useFP)
   {
@@ -203,6 +214,9 @@ analyse_one_animal <- function (animal_data, export_graphs)
                  }
                  , animals_pos )
   }
+
+
+writeLines("Calculating distances between animals, sheep, etc...");
 
   # find relative positions of sheep wrt animals (vector from sheep to animal)
   animals_to_sheep_vectors <-
@@ -224,7 +238,15 @@ analyse_one_animal <- function (animal_data, export_graphs)
         , animals_pos
     );
 
-  # find the distance to the middle point of the sheep, that is the mean of all the distances
+  # find the distance to the middle point of the sheep
+  animals_to_middle_sheep_distances <-
+    Map ( # for each animal ..
+      function (pos_a) norm3D(pos_a - sheep_middle_pos) # dist to middle = vector norm of pos(animal) - sheep_middle_pos
+      , animals_pos
+    );
+
+
+  # find the average distance to the sheep
   # AND the distance to the closest: We need to do almost the same calculations...
   # So we compute both at the same time, and sort them later
   tmp <-
@@ -242,11 +264,10 @@ analyse_one_animal <- function (animal_data, export_graphs)
         animals_to_sheep_distances
     );
   # now we sort the values into two lists: tmp now contains pairs of vectors with min and mean
-  animals_to_middle_sheep_distance  <-
+  animals_to_sheep_mean_distances  <-
     Map ( function(l) l[[1]], tmp) ; # take the first vector, mean
-  animals_to_closest_sheep_distance <-
+  animals_to_closest_sheep_distances <-
     Map ( function(l) l[[2]], tmp) ; # take the 2nd vector, min
-
 
   # Find the alignment between animals and sheep
   f_align <- function (dx_a, dx_s) # alignment between a and s is given by
@@ -258,6 +279,9 @@ analyse_one_animal <- function (animal_data, export_graphs)
             Map ( function(dx_s) f_align(dx_a, dx_s) , sheep_dx )
         , animals_dx
     );
+
+
+writeLines("Calculating coordination values...");
 
   # Compute how much the animals are in front of the sheep
   f_infront <- function (dx_a, vector_a_to_s) # in front between a and s is given by
@@ -312,20 +336,56 @@ analyse_one_animal <- function (animal_data, export_graphs)
       
     }
   }
-    
+
+writeLines("Calculating groups...");
+
+  # find at which moment the sheep are considered to be "in group"
+  # say that a "group" is when animals are closer than 5m to the middle point of them
+  d_max_group <- 0.005; # inside: 5m
+  d_max_close <- 0.015;  # close:  15m
+  group_classes <- factor( c("In group", "Close to group", "Far", "No group") );
+  f_is_group <- function (pmid, p) norm3D(pmid,p) <= d_max_group
+  f_choose_group <- function (d)
+  {
+    cls <- ifelse( d <= d_max_group,        # inside group max?
+                  1,                        # yes: "In group"
+                  ifelse (d <= d_max_close, # no: inside close max ?
+                          2,                #     yes : "Close to group"
+                          3));              #     no: "Far"
+    Map (function(x) group_classes[x], cls)# apply to all elements
+  }
+  # step 1. Find when the sheep are "in group" and when not
+  s2mid_dists <- Map ( function(pos) norm3D(pos - sheep_middle_pos), sheep_pos);
+  are_sheep_ingroup <- Reduce (
+                        init = rep (TRUE, num_samples), # start with true at every moment
+                        function (acc, s2mid_d)
+                            ifelse (s2mid_d <= d_max_group # is the distance sheep - middle <= d_max_group ?
+                                    , acc                  # yes -> keep the older value
+                                    , F)                   # no  -> make it false
+                            , s2mid_dists, ); # do that with all sheep
+  # step 2. At the moments where they are in group, classify the animals
+  animals_group_relation <-
+    Map ( function (a2mid_d) # at each timestamp
+             ifelse (are_sheep_ingroup, # are sheep in group at this moment? 
+                        f_choose_group(a2mid_d), # yes -> use the function to classify
+                        group_classes[4])         # no  -> "No group"
+             , animals_to_middle_sheep_distances # do that for each animal
+      );
+
   return (
     list (
       "a2s_dist"        = animals_to_sheep_distances,
-      "a2_middle_s"     = animals_to_middle_sheep_distance,
-      "a2_closest_s"    = animals_to_closest_sheep_distance,
+      "a2_mean_dist"    = animals_to_sheep_mean_distances,
+      "a2_closest_s"    = animals_to_closest_sheep_distances,
       "a2fp_dist"       = if (useFP) animals_to_fp_distances else c(),
+      "a2_middle_dist"  = animals_to_middle_sheep_distances,
       "coord_posalign"  = animals_sheep_coord_posalign,
       "coord_negalign"  = animals_sheep_coord_negalign,
       "a_pos"           = animals_pos,
       "a_dx"            = animals_dx,
       "s_pos"           = sheep_pos,
       "s_dx"            = sheep_dx,
-      "a2s_vectors"     = animals_to_sheep_vectors,
+      "groups"          = animals_group_relation,
       "align"           = animals_align_with_sheep,
       "infront"         = animals_infrontof_sheep,
       "time"            = time_seq
@@ -344,8 +404,10 @@ write_results <- function(useFP, fp_str, animal_names, sheep_names, vals)
     dist_a    <- sum (norm3D (vals$"a_dx"[[i_a]]), na.rm=T);
     mean_dist_a_closest   <- mean(vals$"a2_closest_s"[[i_a]]);
     median_dist_a_closest <- median(vals$"a2_closest_s"[[i_a]]);
-    mean_dist_a_middle   <- mean(vals$"a2_middle_s"[[i_a]]);
-    median_dist_a_middle <- median(vals$"a2_middle_s"[[i_a]]);
+    mean_dist_a_middle   <- mean(vals$"a2_middle_dist"[[i_a]]);
+    median_dist_a_middle <- median(vals$"a2_middle_dist"[[i_a]]);
+    mean_dist_a_mean   <- mean(vals$"a2_mean_dist"[[i_a]]);
+    median_dist_a_mean <- median(vals$"a2_mean_dist"[[i_a]]);
     if (useFP) mean_dist_a_fp <- mean(vals$"a2fp_dist"[[1]]);
     start_date_time <- vals$"time"[1];
     end_date_time <- tail(vals$"time", n=1);
@@ -394,8 +456,10 @@ write_results <- function(useFP, fp_str, animal_names, sheep_names, vals)
       wrtr ("dist_sheep_rel",                  c(dist_rel));
       wrtr ("mean_dist_closest",               c(mean_dist_a_closest));
       wrtr ("median_dist_closest",             c(median_dist_a_closest));
-      wrtr ("mean_dist_middle",                c(mean_dist_a_middle));
-      wrtr ("median_dist_middle",              c(median_dist_a_middle));
+      wrtr ("mean_dist_mean",                  c(mean_dist_a_middle));
+      wrtr ("median_dist_mean",                c(median_dist_a_middle));
+      wrtr ("mean_dist_middle",                c(mean_dist_a_mean));
+      wrtr ("median_dist_middle",              c(median_dist_a_mean));
       wrtr ("dog_in_front1000",                c(mean_front * 1000));
       wrtr ("dog_aligned100",                  c(mean_align * 100));
       wrtr ("coord_align_pos",                 c(mean_coord_posalign));
@@ -627,24 +691,24 @@ draw_graphs_1animal <- function(folder, useFP, fp_str, animal_names, sheep_names
   # distance to the middle of the sheep
   draw_graph_1val(num_animals,
                          x_time_data=x_time_data,
-                         y_data=values$"a2_middle_s",
-                         x_hists_data=values$"a2_middle_s",
+                         y_data=values$"a2_middle_dist",
+                         x_hists_data=values$"a2_middle_dist",
                          main_directs=main_direct_1animal,
                          x_axis_labels=axis_labels,
                          x_axis_at=axis_dates,
-                         key_title_plot="graph_dist_mean",
+                         key_title_plot="graph_dist_middle",
                          args_title_plot=c(allnames),
-                         key_title_hist="graph_hist_dist_mean",
+                         key_title_hist="graph_hist_dist_middle",
                          args_title_hist=c(allnames)
                          );
   # normalised distance to the middle of the sheep
   draw_graph_1val(num_animals,
                          x_time_data=x_time_data,
-                         y_data=values$"a2_middle_s",
+                         y_data=values$"a2_middle_dist",
                          main_directs=main_direct_1animal,
                          x_axis_labels=axis_labels,
                          x_axis_at=axis_dates,
-                         key_title_plot="graph_dist_mean_norm",
+                         key_title_plot="graph_dist_middle_norm",
                          args_title_plot=c(allnames),
                          ylim=c(0,1)
                          );

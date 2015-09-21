@@ -134,21 +134,21 @@ temp_dog_data <- list (
 );
 
 #itinialize the data with an empty data set
-animals_data_set <- AnimalsDataSet(numEntries=0);
+#animals_data_set <- AnimalsDataSet(numEntries=0);
 
 # Initialize with the debug data above
-#animals_data_set <- AnimalsDataSet(
-#        numEntries    =1,
-#        numAnimals    =2,
-#        numSheep      =2,
-#        animalNames   =temp_dog_data[[1]],
-#        sheepNames    =temp_dog_data[[2]],
-#        outputFolder  =temp_dog_data[[3]],
-#        animalFiles   =temp_dog_data[[4]],
-#        sheepFiles    =temp_dog_data[[5]],
-#        useFixedPoint =temp_dog_data[[6]],
-#        fixedPoint    =temp_dog_data[[7]]
-#        );
+animals_data_set <- AnimalsDataSet(
+        numEntries    =1,
+        numAnimals    =2,
+        numSheep      =2,
+        animalNames   =temp_dog_data[[1]],
+        sheepNames    =temp_dog_data[[2]],
+        outputFolder  =temp_dog_data[[3]],
+        animalFiles   =temp_dog_data[[4]],
+        sheepFiles    =temp_dog_data[[5]],
+        useFixedPoint =temp_dog_data[[6]],
+        fixedPoint    =temp_dog_data[[7]]
+        );
 
 # when the user chooses a first file from a folder, we then propose that folder
 fastFolder <- ".";
