@@ -107,6 +107,8 @@ startPDF <- function
     if ( internal_inPDF__ )
       stop ( "PDF already active, first call endPDF()");
 
+
+
     internal_pdfName__ <<- name;
 
     filepath <- paste(internal_pdfFolder__, internal_pdfName__, ".pdf", sep="");
@@ -152,46 +154,6 @@ preparePDFTitle <- function(title, oma=c(0,0,if (is.null(subtitle)) 2 else 3,0),
     internal_pdfSubitle__ <<- subtitle;
 }
 
-
-makePlot <- function
-  (
-    x,
-    y,
-    transl_key,
-    transl_args=c(),
-    #main_transl_key=name_transl_key,
-    #main_transl_args=name_transl_args,
-    pdf_width=DEFAULT_PDF_WIDTH,
-    pdf_height=DEFAULT_PDF_HEIGHT,
-    xlab=DEFAULT_PLOT_X_LAB,
-    ylab=DEFAULT_PLOT_Y_LAB,
-    type="l",
-    ylim=NULL,
-    col="black",
-    extraFn=NULL, # we will call this function if not null
-    custom_datetime_labels=NULL,
-    custom_datetime_labels_at=NULL
-  )
-{
-  #filename <- get_trans_filename(name_transl_key, name_transl_args);
-  filename <- get_translation(transl_key, transl_args);
-  startPDF ( filename, w=pdf_width, h=pdf_height );
-
-  #justPlot( x=x, y=y, main_transl_key=main_transl_key,
-  #          main_transl_args=main_transl_args,
-  justPlot( x=x, y=y, main_transl_key=transl_key,
-            main_transl_args=transl_args,
-            xlab=xlab, ylab=ylab,
-            type=type, ylim=ylim, col=col, extraFn=extraFn,
-            custom_datetime_labels=custom_datetime_labels,
-            custom_datetime_labels_at=custom_datetime_labels_at);
-
-  endPDF();
-
-  echo <- paste("Graph file",filename,"created");
-  writeLines(echo);
-}
-
 justPlot <- function
   (
     x,
@@ -199,12 +161,8 @@ justPlot <- function
     main_transl_key,
     main_transl_args=c(),
     main_direct=NULL,
-    #sub=NULL,
     xlab=DEFAULT_PLOT_X_LAB,
     ylab=DEFAULT_PLOT_Y_LAB,
-    #type="l",
-    #ylim=NULL,
-    #col="black",
     extraFn=NULL, # we will call this function if not null
     xaxt="s",
     custom_datetime_labels=NULL,
@@ -227,10 +185,10 @@ justPlot <- function
   
   xaxt <- if (useCustomDateLabels) "n" else xaxt; # suppress axis if we use our own labels
 
-  main <- if ( ! is.null(main_direct) ) main_direct
-          else if (main_transl_key=="") NULL
+  main <- if ( ! missing(main_direct) ) main_direct
+          else if ( missing(main_transl_key) ) NULL
           else get_translation(main_transl_key, main_transl_args);
-  #plot ( x, y, main=main, sub=sub, xlab=xlab, ylab=ylab, xaxt=xaxt, type=type, ylim=ylim, col=col, ... );
+
   plot ( x, y, main=main, xlab=xlab, ylab=ylab, xaxt=xaxt, ... );
 
   if (useCustomDateLabels)
@@ -242,68 +200,7 @@ justPlot <- function
   echo <- paste("Graph ",main,"created");
 }
 
-# this is used to draw multiple plots
-quickMultiPlot <- function(
-    ydata, # we use as.data.frame(ydata[i])[,1] .......
-    ydata2=NULL, # same usage
-    xdata, # we use xdata[[i]]
-    nplots,
-    transl_key,
-    transl_args,
-    xlab_at,
-    xlabels,
-    mains,
-    xlab=DEFAULT_PLOT_X_LAB,
-    subtitle=NULL,
-    ncols=2,
-    col="black",
-    col2="green")
-{
-  mfrow <- c(as.integer(ceiling((nplots)/ncols)), ncols);
-  startPDF(name=get_trans_filename(transl_key, transl_args), mfrow=mfrow);
-  title <- get_translation (transl_key, transl_args);
-  preparePDFTitle(title, subtitle=subtitle);
-  for (i in 1:nplots)
-  {
-    at_ <- xlab_at[[i]];
-    ls_ <- xlabels[[i]];
-    y <- as.data.frame(ydata[i])[,1];
-    justPlot ( x=xdata[[i]], y=y, main_direct=mains[i], main_transl_key="", xlab=xlab, col=col, extraFn=NULL, custom_datetime_labels=ls_, custom_datetime_labels_at=at_);
-    if ( ! is.null(ydata2) )
-    {
-      y <- as.data.frame(ydata2[i])[,1];
-      lines (xdata[[i]], y, col=col2, xaxt="n", type="l");
-    }
-  }
-  endPDF();
-}
-
-
-makeHist <- function
-  (
-    x ,
-    name_transl_key,
-    name_transl_args=c(),
-    main_transl_key=name_transl_key,
-    main_transl_args=name_transl_args,
-    xlab=DEFAULT_HIST_X_LAB,
-    ylab=DEFAULT_HIST_Y_LAB,
-    showMedian=TRUE,
-    useDefaultBreaks=TRUE, # false means we compute the breaks from the median
-    extraFn=NULL # we will call this function if not null
-  )
-{
-  filename <- get_trans_filename(name_transl_key, name_transl_args);
-  startPDF(name=filename);
-
-  justHist ( x, main_transl_key=main_transl_key, main_transl_args=main_transl_args, xlab=xlab, ylab=ylab, showMedian=showMedian, useDefaultBreaks=useDefaultBreaks, extraFn );
-
-  endPDF();
-
-  echo <- paste("Graph file",filename,"created");
-  writeLines(echo);
-}
-
+# x can be a vector or a histogram object
 justHist <- function
   (
     x ,
@@ -314,44 +211,39 @@ justHist <- function
     xlab=DEFAULT_HIST_X_LAB,
     ylab=DEFAULT_HIST_Y_LAB,
     showMedian=TRUE,
-    useDefaultBreaks=TRUE, # false means we compute xlim from the median
     extraFn=NULL, # we will call this function if not null
-    ylim=NULL
+    breaks=NULL,
+    ...
   )
 {
+
   if (showMedian)
+  {
     med <- median (x);
-
-  if (showMedian)
-  {
-     tr <- get_translation("red_median", c(signif(med, digits=4)))
-     if ( is.null(sub) ) sub <- tr
-     else sub <- paste(sub, tr, sep="\n");
-  }
-
-  breaks <- seq(min(x), max(x), len=HISTOGRAM_CLASSES);
-  if (useDefaultBreaks)
-  {
-    xlim <- HIST_DEFAULT_MAX_XLIM;
-  }
-  else
-  {
-    xlim <- 8*med;
-    x <- Filter( function(i)i<=xlim, x);
+    tr <- get_translation("red_median", c(signif(med, digits=4)))
+    if ( is.null(sub) ) sub <- tr
+    else sub <- paste(sub, tr, sep="\n");
   }
 
   main <- if ( ! is.null(main_direct) ) main_direct
           else if (main_transl_key=="") NULL
           else get_translation(main_transl_key, main_transl_args);
-  hist (x, breaks=breaks, xlab=xlab, ylab=ylab, main=main, sub=sub);
+
+  # check if we have a histogram object, or make it
+  x_class = attr (x,"class");
+  if ( is.null(x_class) || x_class != "histogram")
+  {
+    if (missing(breaks) || is.null(breaks)) breaks <- seq (min(x),max(x),length.out=HISTOGRAM_CLASSES);
+    x <- hist(x, breaks=breaks, plot=F);
+  }
+  # and plot!
+  plot (x, xlab=xlab, ylab=ylab, main=main, sub=sub, ...);
 
   if (showMedian)
     abline ( v=med, col="red", lwd=2 );
 
   if (! is.null (extraFn) )
     extraFn();
-
-  echo <- paste("Graph ",main,"created");
 }
 
 

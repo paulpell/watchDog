@@ -49,6 +49,9 @@ HISTOGRAM_CLASSES <<- 200; # `how many columns in one histogram?'
 LANGS <- c(FR=1,DE=2); # indexes for language
 LANG <<- LANGS[["FR"]]; # used in translate.R
 FILTER_DIST <<- 0.05; # km; for coordination value, use only when animal closer than that
+DIST_GROUP_CLASSES <- factor( c("In group", "Close to group", "Far", "Sheep not in group") );
+DIST_GROUP_MAX_INGROUP <- 0.005; # km; "in group" means distance of all to middle is less
+DIST_GROUP_MAX_CLOSE <- 0.01; # km; "close to group" means distance of all to middle is less
 
 # This folder is where we output the comparison (several data sets together) graphs
 comparisonOutputFolder <-

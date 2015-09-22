@@ -339,27 +339,23 @@ writeLines("Calculating coordination values...");
 
 writeLines("Calculating groups...");
 
-  # find at which moment the sheep are considered to be "in group"
+  # Classify the distance from the animal to the middle of the sheep when they are "in group"
   # say that a "group" is when animals are closer than 5m to the middle point of them
-  d_max_group <- 0.005; # inside: 5m
-  d_max_close <- 0.015;  # close:  15m
-  group_classes <- factor( c("In group", "Close to group", "Far", "No group") );
-  f_is_group <- function (pmid, p) norm3D(pmid,p) <= d_max_group
   f_choose_group <- function (d)
   {
-    cls <- ifelse( d <= d_max_group,        # inside group max?
-                  1,                        # yes: "In group"
-                  ifelse (d <= d_max_close, # no: inside close max ?
-                          2,                #     yes : "Close to group"
-                          3));              #     no: "Far"
-    Map (function(x) group_classes[x], cls)# apply to all elements
+    cls <- ifelse( d <= DIST_GROUP_MAX_INGROUP,      # inside group max?
+                  1,                                 # yes: "In group"
+                  ifelse (d <= DIST_GROUP_MAX_CLOSE, # no: inside close max ?
+                          2,                         #     yes : "Close to group"
+                          3));                       #     no: "Far"
+    Map (function(x) DIST_GROUP_CLASSES[x], cls)# apply to all elements
   }
   # step 1. Find when the sheep are "in group" and when not
   s2mid_dists <- Map ( function(pos) norm3D(pos - sheep_middle_pos), sheep_pos);
   are_sheep_ingroup <- Reduce (
                         init = rep (TRUE, num_samples), # start with true at every moment
                         function (acc, s2mid_d)
-                            ifelse (s2mid_d <= d_max_group # is the distance sheep - middle <= d_max_group ?
+                            ifelse (s2mid_d <= DIST_GROUP_MAX_CLOSE # is the distance sheep - middle <= d_max_group ?
                                     , acc                  # yes -> keep the older value
                                     , F)                   # no  -> make it false
                             , s2mid_dists, ); # do that with all sheep
@@ -368,7 +364,7 @@ writeLines("Calculating groups...");
     Map ( function (a2mid_d) # at each timestamp
              ifelse (are_sheep_ingroup, # are sheep in group at this moment? 
                         f_choose_group(a2mid_d), # yes -> use the function to classify
-                        group_classes[4])         # no  -> "No group"
+                        DIST_GROUP_CLASSES[4])         # no  -> "No group"
              , animals_to_middle_sheep_distances # do that for each animal
       );
 
@@ -722,7 +718,33 @@ draw_graphs_1animal <- function(folder, useFP, fp_str, animal_names, sheep_names
                          args_title=c(allnames),
                          colors=c("blue","green","yellow","red")
                          );
-
+  # Histogram of groups
+  breaks <- c(0:4+0.2, 0:4+0.8); # where to separate data; trick to have thin columns
+  vals <- Map (
+    function(x)
+    {
+      suppressWarnings({
+        h <- hist (as.integer(x), plot=F, breaks=breaks, freq=T);
+        h$density <- h$counts <- h$counts / sum(h$counts);
+        return (h);
+      });
+    }
+    , values$"groups" );
+  # display name of groups at bottom
+  labels <- c("",as.character(DIST_GROUP_CLASSES),"");
+  labels[2] <- paste(labels[2], "( <=", DIST_GROUP_MAX_INGROUP,")");
+  labels[3] <- paste(labels[3], "( <=", DIST_GROUP_MAX_CLOSE,")");
+  at <- 0:5;
+  f_draw_axis <- function() axis(1, tick=F, at=at, labels=labels, padj=-1.5);
+  draw_graph_1val(num_animals,
+                         x_hists_data=vals,
+                         main_directs=main_direct_1animal,
+                         key_title_hist="hist_dist_groups",
+                         args_title_hist=c(allnames),
+                         showMedian=FALSE,
+                         ylab=get_translation("rel_freq"),
+                         xlab="", xaxt="n", extraFn=f_draw_axis
+                         )
 
 
   # histogram of coordination: we combine orientation and in front of to obtain an overall "coordination index"

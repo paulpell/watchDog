@@ -64,7 +64,7 @@ LANGUAGES$dist_km <- c("Distance [km]", "Distanz [km]");
 LANGUAGES$date <- c("Date", "Datum");
 LANGUAGES$time <- c("Temps", "Zeit");
 LANGUAGES$freq <- c("Frequence", "Frequenz");
-LANGUAGES$rel_freq <- c("Frequence / #mesures", "Frequenz / #Werte");
+LANGUAGES$rel_freq <- c("Frequence / #mesures (%)", "Frequenz / #Werte (%)");
 LANGUAGES$red_median <- c("Mediane en rouge: ^1",
                           "Median in rot: ^1");
 LANGUAGES$sheep_i <- c("Mouton ^1", "Schaf ^1");
@@ -111,6 +111,9 @@ LANGUAGES$graph_dist_both_sheep <- c("Distances ^1 aux moutons",
 
 LANGUAGES$graph_hist_coord_both_sheep <- c("Histogramme de coordination ^1 aux deux moutons",
                                      "Koordinationshistogramm ^1 zu beide Schafen");
+
+LANGUAGES$hist_dist_groups <- c("Histogramme de classification des distances ^1",
+                            "Histogramm der Klassifikation der Distanzen ^1");
 
 
 # comparison graphs
