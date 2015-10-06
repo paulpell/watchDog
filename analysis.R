@@ -124,6 +124,22 @@ unify_timestamp <- function (d1, d2)
   return (list(d1[r1,], d2[r2,]));
 }
 
+# given a data frame, returns the same with unique timestamps values
+remove_dup_timestamp <- function(d)
+{
+  vi <- 1; # last valid index
+  is <- c(vi); # valid indices
+  for ( i in 2:length(d$Timestamp) )
+  {
+    if ( d$Timestamp[i] != d$Timestamp[vi] )
+    {
+      is <- c(is, i);
+      vi <- i;
+    }
+  }
+  d [ is, ] ;
+}
+
 # check, remove, count, test existence of NaN values
 f_no_nan <- function(x) !is.nan(x);
 filter_no_nan <- function(x) return (Filter(f_no_nan, x));
@@ -161,14 +177,24 @@ writeLines("Reading data files...");
   max_tstamps <- Map ( function (x) max(x[,"Timestamp"]), c(animals_data, sheep_data)); 
   test_min_tstamp  <- unique(min_tstamps);
   test_max_tstamp  <- unique(max_tstamps);
-  if ( length (test_min_tstamp) > 1 )
-    stop("All animals do not have the same start timestamp!");
-  if ( length (test_max_tstamp) > 1 )
-    stop("All animals do not have the same end timestamp!");
   num_samples <- unique ( Map ( function (x) length(x[,"Timestamp"]), c(animals_data, sheep_data)) );
-  if ( length (num_samples) > 1 )
-    stop("All animals do not have the same number of samples!");
-  num_samples <- num_samples[[1]];
+  # if the timestamps do not start or stop at the same moment, or do not have the same length,
+  # we correct them
+  if ( length (test_min_tstamp) > 1 || length (test_max_tstamp) > 1 || length (num_samples) > 1 )
+  {
+writeLines ("Unifying timestamps....");
+      tstmps <- Map ( function(x) x$Timestamp, c(animals_data, sheep_data) );
+      uniq <- Reduce ( function(acc,x) intersect(acc,x), tstmps );
+      f <- function (x)
+      {
+        ts <- x$Timestamp %in% uniq;
+        r <- x[which(ts),];
+        remove_dup_timestamp(r);
+      }
+      animals_data <- Map ( f, animals_data );
+      sheep_data <- Map ( f, sheep_data );
+  }
+  num_samples <- num_samples[[1]]
 
 
   # Prepare the time data as time sequence
