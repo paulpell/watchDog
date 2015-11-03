@@ -508,6 +508,7 @@ write_results <- function(useFP, fp_str, animal_names, sheep_names, vals, output
       wrtr ("test_duration",                   c(duration));
     }
   }
+  close (file);
 }
 
 
@@ -645,11 +646,16 @@ draw_graph_nvals <- function(
 draw_graphs_1animal <- function(folder, useFP, fp_str, animal_names, sheep_names, values)
 {
 
+  hours_bw_labels <- 3; 
   x_time_data <- values$"time";
-  start_date_time <- values$"time"[1];
-  end_date_time <- tail(values$"time", n=1);
+  start_date_time <- as.POSIXlt(values$"time"[1]);
+  end_date_time <- as.POSIXlt(tail(values$"time", n=1));
+  dt <- difftime (end_date_time, start_date_time);
+  num_ticks <- as.double(dt) / hours_bw_labels;
+  DEFAULT_PDF_WIDTH <- 2 * num_ticks;
+  DEFAULT_PDF_HEIGHT <- num_ticks;
 
-  axis_dates <- seq.POSIXt(start_date_time, end_date_time, length.out=9);
+  axis_dates <- seq.POSIXt(start_date_time, end_date_time, length.out=num_ticks);
   axis_labels <- format(axis_dates, graph_datetime_format);
 
   num_animals <- length(animal_names);
