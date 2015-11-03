@@ -359,10 +359,9 @@ get_filterDist <- function()
   }
 }
 # find the output folder, and validate it
-get_baseFolder <- function()
+get_compOutputFolder <- function()
 {
-  bf_text <- labelComparisonOutputFolder$getText();
-  bf <- paste(bf_text, .Platform$file.sep, sep="");
+  bf <- comparisonOutputFolder;
   if (bf == "")
     stop ("No output folder for the comparison data was chosen")
   else if (!file_test("-d", bf))
@@ -498,7 +497,7 @@ startStuff <- function (button)
       HISTOGRAM_CLASSES <<- get_histClasses();
       FILTER_DIST <<- get_filterDist();
       LANG <<- comboLangs$active + 1;
-      comparisonOutputFolder <- get_baseFolder();
+      comparisonOutputFolder <- get_compOutputFolder();
       export_1animal_graph <- checkBox_exp_1animal_graphs$active;
       export_allanimals_graph <- checkBox_exp_allanimals_graphs$active;
 
