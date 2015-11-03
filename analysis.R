@@ -381,10 +381,10 @@ writeLines("Calculating groups...");
   are_sheep_ingroup <- Reduce (
                         init = rep (TRUE, num_samples), # start with true at every moment
                         function (acc, s2mid_d)
-                            ifelse (s2mid_d <= DIST_GROUP_MAX_CLOSE # is the distance sheep - middle <= d_max_group ?
+                            ifelse (s2mid_d <= DIST_GROUP_MAX_INGROUP # is the distance sheep - middle <= d_max_group ?
                                     , acc                  # yes -> keep the older value
                                     , F)                   # no  -> make it false
-                            , s2mid_dists, ); # do that with all sheep
+                            , s2mid_dists); # do that with all sheep
   # step 2. At the moments where they are in group, classify the animals
   animals_group_relation <-
     Map ( function (a2mid_d) # at each timestamp
@@ -417,8 +417,11 @@ writeLines("Calculating groups...");
 
 #################################
 # write some results out to the console
-write_results <- function(useFP, fp_str, animal_names, sheep_names, vals)
+write_results <- function(useFP, fp_str, animal_names, sheep_names, vals, output_folder)
 {
+  # open a file to write the results
+  filename <- paste(output_folder, "text-values.txt", sep="");
+  file <- file (filename, open="a"); 
   # foreach animal
   for ( i_a in 1:length(animal_names))
   {
@@ -462,17 +465,25 @@ write_results <- function(useFP, fp_str, animal_names, sheep_names, vals)
       mean_coord_nalign_infront <- mean(Filter(f_neg, coord_negalign), na.rm=T);
      
       
-      # Now start writing
+      # Now start writing both to standard output and to a file
       wrtr <- function ( key , args = c() )
-        writeLines ( get_translation (key, args) );
-
-      writeLines("==========================");
-      writeLines("==========================");
-      writeLines("  Results for:");
-      writeLines(paste("    Animal: ", animal_names[[i_a]]));
-      writeLines(paste("    Sheep: ", sheep_names[[i_s]]));
-      writeLines("==========================");
-      writeLines("==========================");
+      {
+        str <- get_translation (key, args);
+        writeLines (str);
+        writeLines (str, con=file);
+      }
+      intro <- function (con)
+      {
+        writeLines(con=con, "==========================");
+        writeLines(con=con, "==========================");
+        writeLines(con=con, "  Results for:");
+        writeLines(con=con, paste("    Animal: ", animal_names[[i_a]]));
+        writeLines(con=con, paste("    Sheep: ", sheep_names[[i_s]]));
+        writeLines(con=con, "==========================");
+        writeLines(con=con, "==========================");
+      }
+      intro(stdout());
+      intro(file);
       wrtr ("dist_dog",                        c(dist_a));
       wrtr ("dist_sheep",                      c(dist_s));
       wrtr ("dist_sheep_rel",                  c(dist_rel));
@@ -520,7 +531,7 @@ start_analysis <- function (
     names_s <- data@sheepNames[[1]];
     useFP   <- data@useFixedPoint;
     fp_str  <- if (useFP) paste(data@fixedPoint[[1]][1],data@fixedPoint[[1]][2],sep=",") else "";
-    write_results(useFP, fp_str, names_a, names_s, vals);
+    write_results(useFP, fp_str, names_a, names_s, vals, data@outputFolder);
 
     if (export_1animal_graphs)
       draw_graphs_1animal (data@outputFolder, useFP, fp_str,
