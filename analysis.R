@@ -3,9 +3,7 @@ output_datetime_format <- "%d/%m/%Y %H:%M:%S";
 
 graph_datetime_format <- "%d/%m/%y\n%H:%M";
 
-# this function copies the file and removes the first UTF BOM bytes
-# if they are present..
-removeUTFBOM <- function(filename)
+makeNewFileName <- function (filename)
 {
   #create a new file with similar name, with the new contents
   i <- 1;
@@ -16,7 +14,15 @@ removeUTFBOM <- function(filename)
     new_filename <- paste(filename, "tmp", i, sep="");
   }
   file.create(new_filename);
-  
+  return (new_filename);
+ }
+
+# this function copies the file and removes the first UTF BOM bytes
+# if they are present..
+removeUTFBOM <- function(filename)
+{
+  new_filename <- makeNewFileName(filename);
+ 
   # now copy over to the new file
   n = 1024;
   vec <- c(1);
@@ -38,12 +44,24 @@ removeUTFBOM <- function(filename)
   return(new_filename);
 }
 
+handleDupTimestamps <- function (filename)
+{
+  new_filename <- makeNewFileName(filename);
+  f_in  <- shQuote(filename);
+  lines <- system2 ("perl", args=c("handle-timestamps.pl", "file"), stdin=f_in, stdout=TRUE);
+  conWrite <- file (description=new_filename, open="w");
+  writeLines (lines, con=conWrite);
+  close(conWrite);
+  return (new_filename);
+}
 
 read_file <- function (file)
 {
   f2 <- removeUTFBOM(file);
-  tmp <- as.data.frame ( read.csv (file=f2, sep=DATA_SEP, row.names=NULL) );
+  f3 <- handleDupTimestamps(f2);
+  tmp <- as.data.frame ( read.csv (file=f3, sep=DATA_SEP, row.names=NULL) );
   file.remove(f2);
+  file.remove(f3);
   return (tmp);
 }
 
@@ -177,22 +195,18 @@ writeLines("Reading data files...");
   max_tstamps <- Map ( function (x) max(x[,"Timestamp"]), c(animals_data, sheep_data)); 
   test_min_tstamp  <- unique(min_tstamps);
   test_max_tstamp  <- unique(max_tstamps);
-  num_samples <- unique ( Map ( function (x) length(x[,"Timestamp"]), c(animals_data, sheep_data)) );
   # if the timestamps do not start or stop at the same moment, or do not have the same length,
   # we correct them
-  if ( length (test_min_tstamp) > 1 || length (test_max_tstamp) > 1 || length (num_samples) > 1 )
+  if ( length (test_min_tstamp) > 1 || length (test_max_tstamp) > 1 )
   {
-writeLines ("Unifying timestamps....");
-      tstmps <- Map ( function(x) x$Timestamp, c(animals_data, sheep_data) );
-      uniq <- Reduce ( function(acc,x) intersect(acc,x), tstmps );
-      f <- function (x)
-      {
-        ts <- x$Timestamp %in% uniq;
-        r <- x[which(ts),];
-        remove_dup_timestamp(r);
-      }
-      animals_data <- Map ( f, animals_data );
-      sheep_data <- Map ( f, sheep_data );
+    writeLines ("Unifying timestamps....");
+    min <- max(unlist(test_min_tstamp));
+    max <- min(unlist(test_max_tstamp));
+    f_test <- function (data) data[data$Timestamp>=min & data$Timestamp <= max, ]
+    animals_data <- Map ( f_test, animals_data );
+    sheep_data <- Map ( f_test, sheep_data );
+    num_samples <- Map ( function (x) length(x[,"Timestamp"]), c(animals_data, sheep_data) );
+    if ( length ( unique (num_samples) ) > 1 ) stop ("Timestamps not unique!");
   }
   num_samples <- num_samples[[1]]
 
@@ -648,18 +662,35 @@ draw_graphs_1animal <- function(folder, useFP, fp_str, animal_names, sheep_names
 
   hours_bw_labels <- 3; 
   x_time_data <- values$"time";
-  start_date_time <- as.POSIXlt(values$"time"[1]);
-  end_date_time <- as.POSIXlt(tail(values$"time", n=1));
-  dt <- difftime (end_date_time, start_date_time);
-  num_ticks <- as.double(dt) / hours_bw_labels;
-  DEFAULT_PDF_WIDTH <- 2 * num_ticks;
-  DEFAULT_PDF_HEIGHT <- num_ticks;
+  dates_POSIXlt <- as.POSIXlt (values$time);
+  t0 <- dates_POSIXlt[1];
+  tn <- tail(dates_POSIXlt, n=1);
+  dt <- difftime (tn, t0);
+  dt_hours <- ( (tn$year - t0$year) * 365 + (tn$yday - t0$yday) ) * 24 + (tn$hour - t0$hour);
+  num_ticks <- as.double(dt_hours) / hours_bw_labels;
+  DEFAULT_PDF_WIDTH <<- 0.8 *  num_ticks;
 
-  axis_dates <- seq.POSIXt(start_date_time, end_date_time, length.out=num_ticks);
+  axis_dates <- seq.POSIXt(t0, tn, length.out=num_ticks);
   axis_labels <- format(axis_dates, graph_datetime_format);
 
   num_animals <- length(animal_names);
   num_sheep   <- length(sheep_names);
+
+  # Prepare some data we want to show separately for day and night
+  date_day_indexes <- dates_POSIXlt$hour >= DAY_HOUR_START & dates_POSIXlt$hour <= DAY_HOUR_END;
+  date_night_indexes <- ! date_day_indexes;
+  f_dayOr0 <- function (x) ifelse(date_day_indexes, x, 0);
+  f_day <- function (x) x[date_day_indexes];
+  f_nightOr0 <- function (x) ifelse(date_night_indexes, x, 0);
+  f_night <- function (x) x[date_night_indexes];
+  dayor0_a2middle <- Map (f_dayOr0, values$a2_mean_dist);
+  nightor0_a2middle <- Map ( f_nightOr0, values$a2_mean_dist);
+  day_a2middle <- Map (f_day, values$a2_mean_dist);
+  night_a2middle <- Map (f_night, values$a2_mean_dist);
+  dayor0_a2closest <- Map (f_dayOr0, values$a2_closest_s);
+  nightor0_a2closest <- Map (f_nightOr0, values$a2_closest_s);
+  day_a2closest <- Map (f_day, values$a2_closest_s);
+  night_a2closest <- Map (f_night, values$a2_closest_s);
 
   # prepare a text with all the animal name together for the
   # file names and titles.
@@ -716,6 +747,32 @@ draw_graphs_1animal <- function(folder, useFP, fp_str, animal_names, sheep_names
                          key_title_hist="hist_closest",
                          args_title_hist=c(allnames),
                          );
+  # distances to the closest sheep (day)
+  draw_graph_1val(num_animals,
+                         x_time_data=x_time_data,
+                         y_data=dayor0_a2closest,
+                         x_hists_data=day_a2closest,
+                         main_directs=main_direct_1animal,
+                         x_axis_labels=axis_labels,
+                         x_axis_at=axis_dates,
+                         key_title_plot="graph_closest_day",
+                         args_title_plot=c(allnames),
+                         key_title_hist="hist_closest_day",
+                         args_title_hist=c(allnames),
+                         );
+  # distances to the closest sheep (night)
+  draw_graph_1val(num_animals,
+                         x_time_data=x_time_data,
+                         y_data=nightor0_a2closest,
+                         x_hists_data=night_a2closest,
+                         main_directs=main_direct_1animal,
+                         x_axis_labels=axis_labels,
+                         x_axis_at=axis_dates,
+                         key_title_plot="graph_closest_night",
+                         args_title_plot=c(allnames),
+                         key_title_hist="hist_closest_night",
+                         args_title_hist=c(allnames),
+                         );
   # normalised distance to the closest sheep
   draw_graph_1val(num_animals,
                          x_time_data=x_time_data,
@@ -738,6 +795,32 @@ draw_graphs_1animal <- function(folder, useFP, fp_str, animal_names, sheep_names
                          key_title_plot="graph_dist_middle",
                          args_title_plot=c(allnames),
                          key_title_hist="graph_hist_dist_middle",
+                         args_title_hist=c(allnames)
+                         );
+  # distance to the middle of the sheep (day)
+  draw_graph_1val(num_animals,
+                         x_time_data=x_time_data,
+                         y_data=dayor0_a2middle,
+                         x_hists_data=day_a2middle,
+                         main_directs=main_direct_1animal,
+                         x_axis_labels=axis_labels,
+                         x_axis_at=axis_dates,
+                         key_title_plot="graph_dist_middle_day",
+                         args_title_plot=c(allnames),
+                         key_title_hist="graph_hist_dist_middle_day",
+                         args_title_hist=c(allnames)
+                         );
+  # distance to the middle of the sheep (night)
+  draw_graph_1val(num_animals,
+                         x_time_data=x_time_data,
+                         y_data=nightor0_a2middle,
+                         x_hists_data=night_a2middle,
+                         main_directs=main_direct_1animal,
+                         x_axis_labels=axis_labels,
+                         x_axis_at=axis_dates,
+                         key_title_plot="graph_dist_middle_night",
+                         args_title_plot=c(allnames),
+                         key_title_hist="graph_hist_dist_middle_night",
                          args_title_hist=c(allnames)
                          );
   # normalised distance to the middle of the sheep

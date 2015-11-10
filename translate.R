@@ -86,6 +86,12 @@ LANGUAGES$hist_colors_label <- c("m1: rouge et bleu, m2: jaune et vert", "S1: ro
 LANGUAGES$graph_closest <- c("Distances ^1 au mouton le plus proche",
                                    "Distanzen ^1 zum naechsten Schaf");
 
+LANGUAGES$graph_closest_day <- c("Distances ^1 au mouton le plus proche durant le jour",
+                                   "Distanzen ^1 zum naechsten Schaf waehrend dem Tag");
+
+LANGUAGES$graph_closest_night <- c("Distances ^1 au mouton le plus proche durant la nuit",
+                                   "Distanzen ^1 zum naechsten Schaf waehrend der Nacht");
+
 LANGUAGES$graph_dist_fp <- c("Distances ^1 au point fixe ^2", "Distanzen ^1 zum fixen Punkt ^2");
 
 LANGUAGES$hist_dist_fp <- c("Histogramme des distances ^1 au point fixe ^2",
@@ -97,14 +103,32 @@ LANGUAGES$graph_closest_norm <- c("Distances ^1 au mouton le plus proche, normal
 LANGUAGES$hist_closest <- c("Histogramme des distances ^1 au mouton le plus proche",
                                         "Distanzhistogramm ^1 zum naechsten Schaf");
 
+LANGUAGES$hist_closest_day <- c("Histogramme des distances ^1 au mouton le plus proche durant le jour",
+                                        "Distanzhistogramm ^1 zum naechsten Schaf waehrend dem Tag");
+
+LANGUAGES$hist_closest_night <- c("Histogramme des distances ^1 au mouton le plus proche durant la nuit",
+                                        "Distanzhistogramm ^1 zum naechsten Schaf waehrend der Nacht");
+
 LANGUAGES$graph_dist_middle <- c("Distances ^1 au milieu des moutons",
                                "Distanzen ^1 zur Mitte der Schaf");
+
+LANGUAGES$graph_dist_middle_day <- c("Distances ^1 au milieu des moutons durant le jour",
+                               "Distanzen ^1 zur Mitte der Schaf waehrend dem Tag");
+
+LANGUAGES$graph_dist_middle_night <- c("Distances ^1 au milieu des moutons durant la nuit",
+                               "Distanzen ^1 zur Mitte der Schaf waehrend der Nacht");
 
 LANGUAGES$graph_dist_middle_norm <- c("Distances ^1 au milieu des moutons, normalisees sur 1 km",
                                     "Distanzen ^1 zur Mitte der Schafe, auf 1km normiert");
 
 LANGUAGES$graph_hist_dist_middle <- c("Histogramme distances ^1 au milieu des moutons",
                                     "Distanzhistogramm ^1 zum Mittelpunkt der Schafe");
+
+LANGUAGES$graph_hist_dist_middle_day <- c("Histogramme distances ^1 au milieu des moutons durant le jour",
+                                    "Distanzhistogramm ^1 zum Mittelpunkt der Schafe waehrend dem Tag");
+
+LANGUAGES$graph_hist_dist_middle_night <- c("Histogramme distances ^1 au milieu des moutons durant la nuit",
+                                    "Distanzhistogramm ^1 zum Mittelpunkt der Schafe waehrend der Nacht");
 
 LANGUAGES$graph_dist_both_sheep <- c("Distances ^1 aux moutons",
                                      "Distanzen ^1 zu den Schafen");

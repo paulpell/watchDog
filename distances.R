@@ -52,6 +52,8 @@ FILTER_DIST <<- 0.05; # km; for coordination value, use only when animal closer 
 DIST_GROUP_CLASSES <- factor( c("In group", "Close to group", "Far", "Sheep not in group") );
 DIST_GROUP_MAX_INGROUP <- 0.005; # km; "in group" means distance of all to middle is less
 DIST_GROUP_MAX_CLOSE <- 0.01; # km; "close to group" means distance of all to middle is less
+DAY_HOUR_START <- 5; # at what time a day starts
+DAY_HOUR_END   <- 21;# at what time a day ends
 
 # This folder is where we output the comparison (several data sets together) graphs
 comparisonOutputFolder <-
@@ -104,11 +106,12 @@ extractAnimalData <- function (x, i)
 MAX_ANIMALS <- 5;
 
 # temp debug data
-#tmpdir <- paste("sample", .Platform$file.sep, sep="");
-tmpdir <- "/home/paul/Downloads/"
+tmpdir <- "sample/";
+#tmpdir <- "/home/paul/Downloads/"
 temp_dog_data <- list (
     list( # animal names
-      c("Helix","Tirex")
+      #c("Helix","Tirex")
+      c("Lama1","Lama2")
     ),
     list( # sheep names
       c("m1","m2","m3")
@@ -118,20 +121,25 @@ temp_dog_data <- list (
     ),
     list( # animal data files
       c(
- #       paste(tmpdir,"Helix.txt", sep=""),
-        paste(tmpdir,"Lama1(completed).txt", sep=""),
-#        paste(tmpdir,"Tirex-modified.txt", sep="")
-        paste(tmpdir,"Lama2(complete).txt", sep="")
+  #     paste(tmpdir,"Lama1(completed).txt", sep=""),
+ #        paste(tmpdir,"Lama2(complete).txt", sep="")
+  #     paste(tmpdir,"Helix.txt", sep=""),
+  #       paste(tmpdir,"Tirex-modified.txt", sep="")
+        paste(tmpdir, "Lama1 (16.6-19.6).txt", sep=""),
+        paste(tmpdir, "Lama2 (16.6-19.6).txt", sep="")
       )
     ),
     list( # sheep data files
       c(
-        paste(tmpdir,"Schaf1(complete).txt", sep=""),
-        paste(tmpdir,"Schaf2(complete).txt", sep=""),
-        paste(tmpdir,"Schaf3(completed).txt", sep="")
-        #paste(tmpdir,"mouton1.txt", sep=""),
-        #paste(tmpdir,"mouton2.txt", sep=""),
-        #paste(tmpdir,"mouton3.txt", sep="")
+        # paste(tmpdir,"Schaf1(complete).txt", sep=""),
+        # paste(tmpdir,"Schaf2(complete).txt", sep=""),
+        # paste(tmpdir,"Schaf3(completed).txt", sep="")
+  #     paste(tmpdir,"mouton1.txt", sep=""),
+  #     paste(tmpdir,"mouton2.txt", sep=""),
+  #     paste(tmpdir,"mouton3.txt", sep="")
+        paste(tmpdir, "Schaf1 (16.6-19.6).txt", sep=""),
+        paste(tmpdir, "Schaf2 (16.6-19.6).txt", sep=""),
+        paste(tmpdir, "Schaf3 (16.6-19.6).txt", sep="")
       )
     ),
     c(
