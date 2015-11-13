@@ -4,6 +4,8 @@ library("Cairo");
  
 DEFAULT_PDF_WIDTH <- 12; # inches
 DEFAULT_PDF_HEIGHT <- 6; # inches
+DEFAULT_HIST_PDF_WIDTH <- 12; # inches
+DEFAULT_HIST_PDF_HEIGHT <- 6; # inches
 
 # plot default values
 
@@ -233,7 +235,8 @@ justHist <- function
   x_class = attr (x,"class");
   if ( is.null(x_class) || x_class != "histogram")
   {
-    if (missing(breaks) || is.null(breaks)) breaks <- seq (min(x),max(x),length.out=HISTOGRAM_CLASSES);
+    if (missing(breaks) || is.null(breaks))
+      breaks <- seq (min(x),max(x),length.out=HISTOGRAM_CLASSES);
     x <- hist(x, breaks=breaks, plot=F);
   }
   # and plot!

@@ -435,7 +435,7 @@ write_results <- function(useFP, fp_str, animal_names, sheep_names, vals, output
 {
   # open a file to write the results
   filename <- paste(output_folder, "text-values.txt", sep="");
-  file <- file (filename, open="a"); 
+  file <- file (filename, open="w"); 
   # foreach animal
   for ( i_a in 1:length(animal_names))
   {
@@ -659,7 +659,6 @@ draw_graph_nvals <- function(
 
 draw_graphs_1animal <- function(folder, useFP, fp_str, animal_names, sheep_names, values)
 {
-
   hours_bw_labels <- 3; 
   x_time_data <- values$"time";
   dates_POSIXlt <- as.POSIXlt (values$time);
@@ -872,11 +871,15 @@ draw_graphs_1animal <- function(folder, useFP, fp_str, animal_names, sheep_names
                          xlab="", xaxt="n", extraFn=f_draw_axis
                          )
 
-
   # histogram of coordination: we combine orientation and in front of to obtain an overall "coordination index"
   # we will draw two histograms for each animal-sheep pair:
   # - one when the alignment is positive, on the top half of the graph
   # - the other for negative alignment which will be on the bottom half
+
+  make_coordination_pdfs(values,
+                                    num_animals, num_sheep,
+                                    main_direct_as_vs_sheep,
+                                    allnames);
 
   # combine coordination values.
   # For example, if we have 2 animals and 2 sheep,
@@ -1003,6 +1006,47 @@ draw_graphs_1animal <- function(folder, useFP, fp_str, animal_names, sheep_names
 
   writeLines("");
   writeLines("");
+}
+
+
+make_coordination_pdfs <- function (values,
+                                    num_animals, num_sheep,
+                                    main_direct_as_vs_sheep,
+                                    allnames)
+{
+  # histogram of sheep-animals alignment
+
+  # prepare params
+  datas <- list(values$align, values$infront);
+  xlab <- "";
+  ylab <- get_translation ("rel_freq");
+  keys <- c("hist_align", "hist_infront");
+  args <- c(allnames);
+  n_a <- num_animals; n_s <- num_sheep;
+  mfrow <- c(n_a, n_s);
+  # do plot
+  for (i in 1:2)
+  {
+    key <- keys[i];
+    filename <- get_translation (key, args);
+    title <- get_translation (key, args);
+    startPDF ( name=filename, mfrow=mfrow, w=1.4*DEFAULT_HIST_PDF_WIDTH, h=1.4*DEFAULT_HIST_PDF_HEIGHT ); # make 2 graphs, 1 for each sheep
+    preparePDFTitle (title);
+    for (i_a in 1:n_a)
+    {
+      for (i_s in 1:n_s)
+      {
+        data <- filter_no_nan (datas[[i]][[i_a]][[i_s]]);
+        num_vals <- get_translation("num_vals", length(data));
+        main <- paste (main_direct_as_vs_sheep[i_a,i_s], num_vals, sep=" -- ");
+        justHist(data,
+                 main_transl_key="",
+                 main_direct=main,
+                 showMedian=FALSE);
+      }
+    }
+    endPDF();
+  }
 }
 
 

@@ -16,15 +16,16 @@ rm ( list=ls(all=TRUE) )
 # we use this to find where this file is located in the file system,
 # and load the file given as arg from the same path
   # this seems to be tricky: you NEED!! to SOURCE the file, not run it line by line
-if ( ! exists("source_folder") )
-  source_folder <<- sys.frame(1)$fileName;
-if (is.null(source_folder))
-  source_folder <<- sys.frame(1)$ofile;
-source_file <- function (filename)
-{
-  filepath <- paste(dirname(source_folder), filename, sep = .Platform$file.sep);
-  source(filepath);
-}
+#if ( ! exists("source_folder") )
+#  source_folder <<- sys.frame(1)$fileName;
+#if (is.null(source_folder))
+#  source_folder <<- sys.frame(1)$ofile;
+#source_file <- function (filename)
+#{
+#  filepath <- paste(dirname(source_folder), filename, sep = .Platform$file.sep);
+#  source(filepath);
+#}
+source_file <- function (file) source(file)
 
 # include computations file
 source_file("analysis.R")
@@ -154,18 +155,22 @@ temp_dog_data <- list (
 animals_data_set <- AnimalsDataSet(numEntries=0);
 
 # Initialize with the debug data above
-#animals_data_set <- AnimalsDataSet(
-#        numEntries    =1,
-#        numAnimals    =2,
-#        numSheep      =2,
-#        animalNames   =temp_dog_data[[1]],
-#        sheepNames    =temp_dog_data[[2]],
-#        outputFolder  =temp_dog_data[[3]],
-#        animalFiles   =temp_dog_data[[4]],
-#        sheepFiles    =temp_dog_data[[5]],
-#        useFixedPoint =temp_dog_data[[6]],
-#        fixedPoint    =temp_dog_data[[7]]
-#        );
+debug_data <- FALSE;
+if ( debug_data )
+{
+  animals_data_set <- AnimalsDataSet(
+        numEntries    =1,
+        numAnimals    =2,
+        numSheep      =3,
+        animalNames   =temp_dog_data[[1]],
+        sheepNames    =temp_dog_data[[2]],
+        outputFolder  =temp_dog_data[[3]],
+        animalFiles   =temp_dog_data[[4]],
+        sheepFiles    =temp_dog_data[[5]],
+        useFixedPoint =temp_dog_data[[6]],
+        fixedPoint    =temp_dog_data[[7]]
+        );
+}
 
 # when the user chooses a first file from a folder, we then propose that folder
 fastFolder <- ".";

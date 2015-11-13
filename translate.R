@@ -68,6 +68,7 @@ LANGUAGES$rel_freq <- c("Frequence / #mesures (%)", "Frequenz / #Werte (%)");
 LANGUAGES$red_median <- c("Mediane en rouge: ^1",
                           "Median in rot: ^1");
 LANGUAGES$sheep_i <- c("Mouton ^1", "Schaf ^1");
+LANGUAGES$num_vals <- c("# valeurs: ^1", "# Werte: ^1");
 
 LANGUAGES$graph_align_pos_left_label <- c("alignement > 0, chien suit mouton",
                                           "Ausrichtung > 0, Hund folgt Schaf");
@@ -132,6 +133,12 @@ LANGUAGES$graph_hist_dist_middle_night <- c("Histogramme distances ^1 au milieu 
 
 LANGUAGES$graph_dist_both_sheep <- c("Distances ^1 aux moutons",
                                      "Distanzen ^1 zu den Schafen");
+
+LANGUAGES$hist_align <- c("Histogramme alignement ^1 et moutons",
+                          "Histogramm \"geliche Richtung\" ^1 und Schafe");
+
+LANGUAGES$hist_infront <- c("Histogramme ^1 \"est devant\" le mouton",
+                            "Histogramm ^1 ist dem Schaf \"voraus\"");
 
 LANGUAGES$graph_hist_coord_both_sheep <- c("Histogramme de coordination ^1 aux deux moutons",
                                      "Koordinationshistogramm ^1 zu beide Schafen");
