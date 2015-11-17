@@ -47,7 +47,7 @@ removeUTFBOM <- function(filename)
 handleDupTimestamps <- function (filename)
 {
   new_filename <- makeNewFileName(filename);
-  f_in  <- shQuote(filename);
+  f_in <- if ( .Platform$OS.type == "windows" ) filename else shQuote(filename);
   lines <- system2 ("perl", args=c("handle-timestamps.pl", "file"), stdin=f_in, stdout=TRUE);
   conWrite <- file (description=new_filename, open="w");
   writeLines (lines, con=conWrite);

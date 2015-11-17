@@ -33,10 +33,11 @@ DEFAULT_HIST_X_LAB <- get_translation("dist_km");
 # given a time in hours (decimal), gives a nicely formatted string to display, in the form H:M:S
 pretty_time <- function(t_in)
 {
-  h <- trunc(t_in);
-  m <- trunc (60 * (t_in - h));
-  s <- trunc (3600 * (t_in - m / 60 - h));
-  return (paste(h,':',m,':',s,sep=""));
+  dt <- as.double (t_in, units="hours");
+  h <- trunc(dt);
+  m <- trunc (60 * (dt - h));
+  s <- trunc (3600 * (dt - m / 60 - h));
+  return (paste(h,m,s,sep=":"));
 }
 
 # variables used between the function calls

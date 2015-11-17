@@ -135,10 +135,10 @@ LANGUAGES$graph_dist_both_sheep <- c("Distances ^1 aux moutons",
                                      "Distanzen ^1 zu den Schafen");
 
 LANGUAGES$hist_align <- c("Histogramme alignement ^1 et moutons",
-                          "Histogramm \"geliche Richtung\" ^1 und Schafe");
+                          "Histogramm 'gleiche Richtung' ^1 und Schafe");
 
-LANGUAGES$hist_infront <- c("Histogramme ^1 \"est devant\" le mouton",
-                            "Histogramm ^1 ist dem Schaf \"voraus\"");
+LANGUAGES$hist_infront <- c("Histogramme ^1 'est devant' le mouton",
+                            "Histogramm ^1 ist dem Schaf 'voraus'");
 
 LANGUAGES$graph_hist_coord_both_sheep <- c("Histogramme de coordination ^1 aux deux moutons",
                                      "Koordinationshistogramm ^1 zu beide Schafen");
