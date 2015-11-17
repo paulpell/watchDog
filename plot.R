@@ -28,43 +28,7 @@ HIST_DEFAULT_BREAKS <- seq ( 0, hist_big_max, length.out=(1+HISTOGRAM_CLASSES) )
 DEFAULT_HIST_Y_LAB <- get_translation("freq");
 DEFAULT_HIST_X_LAB <- get_translation("dist_km");
 
-  
-  #########################################
-  #
-  # explanations for the graphs:
-  # 5 functions are used: jpeg(), par(), plot(), axis() and dev.off()
-  #
-  
-  # par() function
-  # ===============
-  # par(mfrow=c(x,y)) tells to create x*y graphs in x rows and y columns
-  # par(mfrow=c(2,1)) creates 2 graphs in 2 rows and 1 column
-  #
-  
-  # plot() function
-  # =============
-  # actually draws the graph
-  # the 2 first arguments are the x and y values in vectors
-  # type "l" creates lines, type "o" is the default and creates circles at every point
-  # xlab, ylab specify the name of the axis (x and y labels)
-  # main gives the main title of the graph
-  # xaxt="n" tells not to create the x axis, as we want to customize it!
-  #
-  
-  # axis() function
-  # =============
-  # creates an axis
-  # the first argument (here "1") specifies which axis to draw (here bottom)
-  # the values are the text values for the dates, instead of the timestamps
-  # padj tells to move the values a little down.
-  #
-  
-  # dev.off() function
-  # =================
-  # closes the png file, otherwise the graph would be replaced with the next plot() function call
-  # This is absolutely needed!!!
-  #
-  
+ 
 
 # given a time in hours (decimal), gives a nicely formatted string to display, in the form H:M:S
 pretty_time <- function(t_in)
