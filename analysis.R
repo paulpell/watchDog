@@ -195,6 +195,7 @@ writeLines("Reading data files...");
   max_tstamps <- Map ( function (x) max(x[,"Timestamp"]), c(animals_data, sheep_data)); 
   test_min_tstamp  <- unique(min_tstamps);
   test_max_tstamp  <- unique(max_tstamps);
+  num_samples <- dim (animals_data[[1]])[1];
   # if the timestamps do not start or stop at the same moment, or do not have the same length,
   # we correct them
   if ( length (test_min_tstamp) > 1 || length (test_max_tstamp) > 1 )
