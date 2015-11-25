@@ -208,8 +208,8 @@ writeLines("Reading data files...");
     sheep_data <- Map ( f_test, sheep_data );
     num_samples <- Map ( function (x) length(x[,"Timestamp"]), c(animals_data, sheep_data) );
     if ( length ( unique (num_samples) ) > 1 ) stop ("Timestamps not unique!");
+    num_samples <- num_samples[[1]]
   }
-  num_samples <- num_samples[[1]]
 
 
   # Prepare the time data as time sequence
@@ -437,6 +437,11 @@ write_results <- function(useFP, fp_str, animal_names, sheep_names, vals, output
   # open a file to write the results
   filename <- paste(output_folder, "text-values.txt", sep="");
   file <- file (filename, open="w"); 
+
+  # write general info
+  writeLines(paste ("Colors used : " , paste(NVALS_COLORS, sep=", "), sep=""));
+  writeLines(con=file, paste ("Colors used : " , paste(NVALS_COLORS, sep=", "), sep=""));
+
   # foreach animal
   for ( i_a in 1:length(animal_names))
   {
@@ -578,6 +583,8 @@ draw_graph_1val <- function (num_animals,
                          key_title_hist, args_title_hist=c(),
                          key_filename_hist=key_title_hist,
                          args_filename_hist=args_title_hist,
+                         ylim_plot=NULL,
+                         xlim_hist=NULL,
                          ...
                          )
 {
@@ -594,7 +601,7 @@ draw_graph_1val <- function (num_animals,
                       main_direct=main_directs[i],
                       custom_datetime_labels=x_axis_labels,
                       custom_datetime_labels_at=x_axis_at,
-                      type="l",
+                      type="l", ylim=ylim_plot,
                       ... );
     }
     endPDF();
@@ -607,8 +614,14 @@ draw_graph_1val <- function (num_animals,
     preparePDFTitle(title=title);
     for (i in 1:num_animals)
     {
-      justHist ( x=x_hists_data[[i]],
+      if ( is.null(xlim_hist) ) 
+        justHist ( x=x_hists_data[[i]],
                       main_direct=main_directs[i],
+                      ... )
+      else
+        justHist ( x=x_hists_data[[i]],
+                      main_direct=main_directs[i],
+                      xlim=xlim_hist,
                       ... );
     }
     endPDF();
@@ -677,20 +690,23 @@ draw_graphs_1animal <- function(folder, useFP, fp_str, animal_names, sheep_names
   num_sheep   <- length(sheep_names);
 
   # Prepare some data we want to show separately for day and night
-  date_day_indexes <- dates_POSIXlt$hour >= DAY_HOUR_START & dates_POSIXlt$hour <= DAY_HOUR_END;
+  date_day_indexes   <- dates_POSIXlt$hour >= DAY_HOUR_START & dates_POSIXlt$hour <= DAY_HOUR_END;
   date_night_indexes <- ! date_day_indexes;
-  f_dayOr0 <- function (x) ifelse(date_day_indexes, x, 0);
-  f_day <- function (x) x[date_day_indexes];
+  f_dayOr0   <- function (x) ifelse(date_day_indexes, x, 0);
+  f_day      <- function (x) x[date_day_indexes];
   f_nightOr0 <- function (x) ifelse(date_night_indexes, x, 0);
-  f_night <- function (x) x[date_night_indexes];
-  dayor0_a2middle <- Map (f_dayOr0, values$a2_mean_dist);
-  nightor0_a2middle <- Map ( f_nightOr0, values$a2_mean_dist);
-  day_a2middle <- Map (f_day, values$a2_mean_dist);
-  night_a2middle <- Map (f_night, values$a2_mean_dist);
-  dayor0_a2closest <- Map (f_dayOr0, values$a2_closest_s);
+  f_night    <- function (x) x[date_night_indexes];
+  dayor0_a2middle    <- Map (f_dayOr0, values$a2_mean_dist);
+  nightor0_a2middle  <- Map ( f_nightOr0, values$a2_mean_dist);
+  day_a2middle       <- Map (f_day, values$a2_mean_dist);
+  night_a2middle     <- Map (f_night, values$a2_mean_dist);
+  dayor0_a2closest   <- Map (f_dayOr0, values$a2_closest_s);
   nightor0_a2closest <- Map (f_nightOr0, values$a2_closest_s);
-  day_a2closest <- Map (f_day, values$a2_closest_s);
-  night_a2closest <- Map (f_night, values$a2_closest_s);
+  day_a2closest      <- Map (f_day, values$a2_closest_s);
+  night_a2closest    <- Map (f_night, values$a2_closest_s);
+  max_day_night_mean    <- max (unlist (values$a2_mean_dist) );
+  max_day_night_closest <- max (unlist (values$a2_closest_s) );
+  ylim_day_night <- c(0, max (max_day_night_mean, max_day_night_closest));
 
   # prepare a text with all the animal name together for the
   # file names and titles.
@@ -745,7 +761,7 @@ draw_graphs_1animal <- function(folder, useFP, fp_str, animal_names, sheep_names
                          key_title_plot="graph_closest",
                          args_title_plot=c(allnames),
                          key_title_hist="hist_closest",
-                         args_title_hist=c(allnames),
+                         args_title_hist=c(allnames)
                          );
   # distances to the closest sheep (day)
   draw_graph_1val(num_animals,
@@ -755,10 +771,12 @@ draw_graphs_1animal <- function(folder, useFP, fp_str, animal_names, sheep_names
                          main_directs=main_direct_1animal,
                          x_axis_labels=axis_labels,
                          x_axis_at=axis_dates,
+                         ylim_plot=ylim_day_night,
+                         xlim_hist=ylim_day_night,
                          key_title_plot="graph_closest_day",
                          args_title_plot=c(allnames),
                          key_title_hist="hist_closest_day",
-                         args_title_hist=c(allnames),
+                         args_title_hist=c(allnames)
                          );
   # distances to the closest sheep (night)
   draw_graph_1val(num_animals,
@@ -766,12 +784,14 @@ draw_graphs_1animal <- function(folder, useFP, fp_str, animal_names, sheep_names
                          y_data=nightor0_a2closest,
                          x_hists_data=night_a2closest,
                          main_directs=main_direct_1animal,
+                         ylim_plot=ylim_day_night,
+                         xlim_hist=ylim_day_night,
                          x_axis_labels=axis_labels,
                          x_axis_at=axis_dates,
                          key_title_plot="graph_closest_night",
                          args_title_plot=c(allnames),
                          key_title_hist="hist_closest_night",
-                         args_title_hist=c(allnames),
+                         args_title_hist=c(allnames)
                          );
   # normalised distance to the closest sheep
   draw_graph_1val(num_animals,
@@ -803,12 +823,14 @@ draw_graphs_1animal <- function(folder, useFP, fp_str, animal_names, sheep_names
                          y_data=dayor0_a2middle,
                          x_hists_data=day_a2middle,
                          main_directs=main_direct_1animal,
+                         ylim_plot=ylim_day_night,
+                         xlim_hist=ylim_day_night,
                          x_axis_labels=axis_labels,
                          x_axis_at=axis_dates,
                          key_title_plot="graph_dist_middle_day",
                          args_title_plot=c(allnames),
                          key_title_hist="graph_hist_dist_middle_day",
-                         args_title_hist=c(allnames)
+                         args_title_hist=c(allnames),
                          );
   # distance to the middle of the sheep (night)
   draw_graph_1val(num_animals,
@@ -816,6 +838,8 @@ draw_graphs_1animal <- function(folder, useFP, fp_str, animal_names, sheep_names
                          y_data=nightor0_a2middle,
                          x_hists_data=night_a2middle,
                          main_directs=main_direct_1animal,
+                         ylim_plot=ylim_day_night,
+                         xlim_hist=ylim_day_night,
                          x_axis_labels=axis_labels,
                          x_axis_at=axis_dates,
                          key_title_plot="graph_dist_middle_night",
@@ -842,7 +866,7 @@ draw_graphs_1animal <- function(folder, useFP, fp_str, animal_names, sheep_names
                          axis_labels, axis_dates,
                          key_title="graph_dist_both_sheep",
                          args_title=c(allnames),
-                         colors=c("blue","green","yellow","red")
+                         colors=NVALS_COLORS
                          );
   # Histogram of groups
   breaks <- c(0:4+0.2, 0:4+0.8); # where to separate data; trick to have thin columns
@@ -904,7 +928,7 @@ draw_graphs_1animal <- function(folder, useFP, fp_str, animal_names, sheep_names
       function(coords_a) # for each animal .. 
           lapply(coords_a, hist, plot=F, breaks=bs)
       , cneg);
-  
+
   max_freq <- 0;
   for ( i_a in 1:length(cpos) ) # for each animal
   {
@@ -982,15 +1006,16 @@ draw_graphs_1animal <- function(folder, useFP, fp_str, animal_names, sheep_names
   # ok let's draw
   n_a <- num_animals; n_s <- num_sheep;
   mfrow <- c(n_a, n_s);
-  startPDF ( name=filename, mfrow=mfrow, w=1.4*DEFAULT_PDF_WIDTH, h=1.4*DEFAULT_PDF_HEIGHT ); # make 2 graphs, 1 for each sheep
+  startPDF ( name=filename, mfrow=mfrow, w=DEFAULT_HIST_PDF_WIDTH, h=DEFAULT_HIST_PDF_HEIGHT ); # make 2 graphs, 1 for each sheep
   preparePDFTitle (title);
   for (i_a in 1:n_a)
   {
     for (i_s in 1:n_s)
     {
-      main <- main_direct_as_vs_sheep[i_a,i_s];
+
       dpos <- hists_no_plot_pos[[i_a]][[i_s]];
       dneg <- hists_no_plot_neg[[i_a]][[i_s]];
+      main <- main_direct_as_vs_sheep[i_a,i_s];
       has_data_pos <- has_coord_pos[[i_a]][[i_s]];
       has_data_neg <- has_coord_neg[[i_a]][[i_s]];
       justCoordHist (dataPos=dpos, dataNeg=dneg,
@@ -1031,7 +1056,7 @@ make_coordination_pdfs <- function (values,
     key <- keys[i];
     filename <- get_translation (key, args);
     title <- get_translation (key, args);
-    startPDF ( name=filename, mfrow=mfrow, w=1.4*DEFAULT_HIST_PDF_WIDTH, h=1.4*DEFAULT_HIST_PDF_HEIGHT ); # make 2 graphs, 1 for each sheep
+    startPDF ( name=filename, mfrow=mfrow, w=DEFAULT_HIST_PDF_WIDTH, h=DEFAULT_HIST_PDF_HEIGHT ); # make 2 graphs, 1 for each sheep
     preparePDFTitle (title);
     for (i_a in 1:n_a)
     {
@@ -1041,6 +1066,7 @@ make_coordination_pdfs <- function (values,
         num_vals <- get_translation("num_vals", length(data));
         main <- paste (main_direct_as_vs_sheep[i_a,i_s], num_vals, sep=" -- ");
         justHist(data,
+                 xlab=xlab, ylab=ylab,
                  main_transl_key="",
                  main_direct=main,
                  showMedian=FALSE);

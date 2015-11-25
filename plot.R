@@ -7,6 +7,11 @@ DEFAULT_PDF_HEIGHT <- 6; # inches
 DEFAULT_HIST_PDF_WIDTH <- 12; # inches
 DEFAULT_HIST_PDF_HEIGHT <- 6; # inches
 
+TOP_MARGIN_TITLE <- 4;
+TOP_MARGIN_SUBTITLE <- 3;
+TOP_TITLE_CEX <- 2.3;
+TOP_SUBTITLE_CEX <- 2.0;
+
 # plot default values
 
 DEFAULT_PLOT_X_LAB <- get_translation("date");
@@ -28,6 +33,7 @@ HIST_DEFAULT_BREAKS <- seq ( 0, hist_big_max, length.out=(1+HISTOGRAM_CLASSES) )
 DEFAULT_HIST_Y_LAB <- get_translation("freq");
 DEFAULT_HIST_X_LAB <- get_translation("dist_km");
 
+NVALS_COLORS <- c("blue","green","yellow","red","orange");
  
 
 # given a time in hours (decimal), gives a nicely formatted string to display, in the form H:M:S
@@ -98,23 +104,27 @@ startPDF <- function
 
 endPDF <- function ()
 {
-    if ( ! is.null(internal_pdfTitle__) )
-    {
-      mtext (internal_pdfTitle__, outer=TRUE, cex=1.6, font=2);
-      if ( ! is.null(internal_pdfSubitle__) )
-      {
-          mtext (internal_pdfSubitle__, outer=TRUE, padj=1.2, cex=1.2);
-      }
-      internal_pdfTitle__ <<- NULL;
-      internal_pdfSubitle__ <<- NULL;
-    }
-    internal_inPDF__ <<- FALSE;
-    internal_pdfName__ <<- "";
-    dev.off();
+  if ( ! is.null(internal_pdfTitle__) )
+  {
+    mtext (internal_pdfTitle__, outer=TRUE, cex=TOP_TITLE_CEX, font=2);
+    if ( ! is.null(internal_pdfSubitle__) )
+      mtext (internal_pdfSubitle__, outer=TRUE, padj=1.6, cex=TOP_SUBTITLE_CEX);
+    internal_pdfTitle__ <<- NULL;
+    internal_pdfSubitle__ <<- NULL;
+  }
+  internal_inPDF__ <<- FALSE;
+  internal_pdfName__ <<- "";
+  dev.off();
 }
 
 # store the title, oma is c(bottom, left, top, right) in number of lines
-preparePDFTitle <- function(title, oma=c(0,0,if (is.null(subtitle)) 2 else 3,0), subtitle=NULL)
+get_default_oma <- function(subtitle)
+{
+  h <- if (is.null(subtitle)) TOP_MARGIN_TITLE else TOP_MARGIN_SUBTITLE
+  c(0,0,h,0)
+}
+
+preparePDFTitle <- function(title, subtitle=NULL, oma=get_default_oma(subtitle))
 {
     par(oma=oma);
     internal_pdfTitle__ <<- title;
@@ -134,6 +144,7 @@ justPlot <- function
     xaxt="s",
     custom_datetime_labels=NULL,
     custom_datetime_labels_at=NULL,
+    ylim=NULL,
     ...
   )
 {
@@ -156,7 +167,7 @@ justPlot <- function
           else if ( missing(main_transl_key) ) NULL
           else get_translation(main_transl_key, main_transl_args);
 
-  plot ( x, y, main=main, xlab=xlab, ylab=ylab, xaxt=xaxt, ... );
+  plot ( x, y, main=main, xlab=xlab, ylab=ylab, xaxt=xaxt, ylim=ylim, ... );
 
   if (useCustomDateLabels)
     axis(1, at=custom_datetime_labels_at, labels=custom_datetime_labels, padj=0.5);
