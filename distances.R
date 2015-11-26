@@ -107,8 +107,8 @@ extractAnimalData <- function (x, i)
 MAX_ANIMALS <- 5;
 
 # temp debug data
-tmpdir <- "sample/";
-#tmpdir <- "/home/paul/Downloads/"
+#tmpdir <- "sample/small/";
+tmpdir <- "/media/data/paul/AGRIDEA/Base_de_donnée_GPS/Lamas/Etzli2/"
 temp_dog_data <- list (
     list( # animal names
       #c("Helix","Tirex")
@@ -126,8 +126,10 @@ temp_dog_data <- list (
  #        paste(tmpdir,"Lama2(complete).txt", sep="")
   #     paste(tmpdir,"Helix.txt", sep=""),
   #       paste(tmpdir,"Tirex-modified.txt", sep="")
-        paste(tmpdir, "Lama1 (16.6-19.6).txt", sep=""),
-        paste(tmpdir, "Lama2 (16.6-19.6).txt", sep="")
+        #paste(tmpdir, "Lama1 (16.6-19.6).txt", sep=""),
+        #paste(tmpdir, "Lama2 (16.6-19.6).txt", sep="")
+        paste(tmpdir, "l1.txt", sep=""),
+        paste(tmpdir, "l2.txt", sep="")
       )
     ),
     list( # sheep data files
@@ -138,9 +140,12 @@ temp_dog_data <- list (
   #     paste(tmpdir,"mouton1.txt", sep=""),
   #     paste(tmpdir,"mouton2.txt", sep=""),
   #     paste(tmpdir,"mouton3.txt", sep="")
-        paste(tmpdir, "Schaf1 (16.6-19.6).txt", sep=""),
-        paste(tmpdir, "Schaf2 (16.6-19.6).txt", sep=""),
-        paste(tmpdir, "Schaf3 (16.6-19.6).txt", sep="")
+        #paste(tmpdir, "Schaf1 (16.6-19.6).txt", sep=""),
+        #paste(tmpdir, "Schaf2 (16.6-19.6).txt", sep=""),
+        #paste(tmpdir, "Schaf3 (16.6-19.6).txt", sep="")
+        paste(tmpdir, "s1.txt", sep=""),
+        paste(tmpdir, "s2.txt", sep=""),
+        paste(tmpdir, "s3.txt", sep="")
       )
     ),
     c(
@@ -476,7 +481,7 @@ collect_current_data <- function(button)
       for (i in 1:(ls-1))
         entry <- paste(entry, s_names[i], ", " , sep="");
     entry <- paste(entry, s_names[ls], ")", sep="");
-    entry <- paste(entry, "=>", basename(fastFolder));
+    entry <- paste(entry, "=>", basename(datasetOutputFolder));
 
     spl <- strsplit(data_setLabel$getText(), "\n")[[1]];
     spl <- grep ( "^$", spl, invert=T, value=T);
