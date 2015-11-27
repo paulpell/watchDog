@@ -431,6 +431,44 @@ writeLines("Calculating groups...");
 }
 
 #################################
+# write all distances to csv files
+wrCSV <- function (fname, x)
+{
+  eol <- if ( .Platform$OS.type == "windows" ) "\r\n" else "\n";
+  write.table (
+            x=x,
+            file=fname,
+            sep=",",
+            quote=FALSE,
+            row.names=FALSE,
+            col.names=FALSE
+            );
+  writeLines(paste("CSV exported:", fname));
+}
+write_distance_CSVs <- function (names_a, names_s, vals, output_folder)
+{
+  num_a <- length(names_a);
+  num_s <- length(names_s);
+  # write distances from all animals to all sheep
+  for ( i_a in 1:num_a )
+  {
+    fname <- paste(output_folder, "distances_", names_a[[i_a]], "-closest.csv", sep="");
+    x <- data.frame(time=vals$time, dist=vals$a2_closest_s[[i_a]]);
+    wrCSV(fname=fname, x=x);
+    fname <- paste(output_folder, "distances_", names_a[[i_a]], "-middle.csv", sep="");
+    x <- data.frame(time=vals$time, dist=vals$a2_mean_dist[[i_a]]);
+    wrCSV(fname=fname, x=x);
+    for ( i_s in 1:num_s )
+    {
+      fname <- paste(output_folder, "distances_", names_a[[i_a]], "-", names_s[[i_s]], ".csv", sep="");
+      x <- data.frame(time=vals$time, dist=vals$a2s_dist[[i_a]][[i_s]]);
+      wrCSV(fname=fname, x=x);
+    }
+  }
+}
+
+
+#################################
 # write some results out to the console
 write_results <- function(useFP, fp_str, animal_names, sheep_names, vals, output_folder)
 {
@@ -553,6 +591,7 @@ start_analysis <- function (
     useFP   <- data@useFixedPoint;
     fp_str  <- if (useFP) paste(data@fixedPoint[[1]][1],data@fixedPoint[[1]][2],sep=",") else "";
     write_results(useFP, fp_str, names_a, names_s, vals, data@outputFolder);
+    write_distance_CSVs (names_a, names_s, vals, data@outputFolder);
 
     if (export_1animal_graphs)
       draw_graphs_1animal (data@outputFolder, useFP, fp_str,
